@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Săn Thủ Ác Quỷ</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- ========== HEADER ========== -->
+    <header id="header">
+        <div class="header-top">
+            <h1 class="game-title">⚔️ Săn Thủ Ác Quỷ</h1>
+            <div class="resource-bar">
+                <span class="res" title="Vàng">💰 <span id="gold">0</span></span>
+                <span class="res" title="Ngọc">💎 <span id="gems">0</span></span>
+                <span class="res" title="Nguyên liệu">📦 <span id="materials">0</span></span>
+            </div>
+        </div>
+        <div class="header-info">
+            <span id="town-level">TP Lv.1</span>
+            <span id="hunter-count">Săn Thủ: 0/3</span>
+            <span id="day-count">Ngày: 1</span>
+        </div>
+        <!-- Main Tabs -->
+        <nav id="main-tabs">
+            <button class="tab-btn active" data-tab="hunters">🧑‍🤝‍🧑 Săn Thủ</button>
+            <button class="tab-btn" data-tab="town">🏘️ Thị Trấn</button>
+            <button class="tab-btn" data-tab="battle">⚔️ Săn Đánh</button>
+            <button class="tab-btn" data-tab="inventory">🎒 Kho Đồ</button>
+            <button class="tab-btn" data-tab="pets">🐾 Thú Cưỡi</button>
+            <button class="tab-btn" data-tab="shop">🏪 Cửa Hàng</button>
+        </nav>
+    </header>
+
+    <!-- ========== MAIN CONTENT ========== -->
+    <main id="content">
+
+        <!-- ===== TAB: HUNTERS ===== -->
+        <section id="tab-hunters" class="tab-content active">
+            <div class="sub-tabs">
+                <button class="sub-tab-btn active" data-subtab="hire">Tuyển Dụng</button>
+                <button class="sub-tab-btn" data-subtab="list">Danh Sách</button>
+                <button class="sub-tab-btn" data-subtab="equip">Trang Bị</button>
+                <button class="sub-tab-btn" data-subtab="skills">Kỹ Năng</button>
+            </div>
+
+            <!-- Sub-tab: Tuyển dụng -->
+            <div id="subtab-hire" class="subtab-content active">
+                <div class="panel">
+                    <h2>🚪 Cánh Cửa Thuê Săn Thủ</h2>
+                    <p>Săn Thủ ngẫu nhiên sẽ đến thị trấn. Bạn có thể chọn giữ lại hoặc đuổi đi.</p>
+                    <div id="hire-candidates" class="hunter-cards"></div>
+                    <button id="btn-refresh-hire" class="btn btn-primary" onclick="Game.Hunters.refreshCandidates()">
+                        🔄 Làm Mới (💰50)
+                    </button>
+                    <p class="tip">💡 Săn Thủ xuất hiện mỗi 30 giây. Tối đa 3 ứng viên cùng lúc.</p>
+                </div>
+            </div>
+
+            <!-- Sub-tab: Danh sách -->
+            <div id="subtab-list" class="subtab-content">
+                <div class="panel">
+                    <h2>📋 Danh Sách Săn Thủ</h2>
+                    <div id="hunter-list" class="hunter-cards"></div>
+                    <div id="hunter-detail" class="detail-panel hidden">
+                        <button class="btn btn-small btn-back" onclick="Game.UI.hideHunterDetail()">← Quay Lại</button>
+                        <div id="hunter-detail-content"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sub-tab: Trang bị -->
+            <div id="subtab-equip" class="subtab-content">
+                <div class="panel">
+                    <h2>⚔️ Giao Trang Bị</h2>
+                    <div id="equip-select-hunter" class="hunter-cards"></div>
+                    <div id="equip-slots" class="hidden">
+                        <h3 id="equip-hunter-name"></h3>
+                        <div class="equip-grid">
+                            <div class="equip-slot" data-slot="weapon" onclick="Game.UI.openEquipPicker('weapon')">
+                                <span class="slot-icon">🗡️</span>
+                                <span class="slot-label">Vũ Khí</span>
+                                <span class="slot-item" id="slot-weapon">Trống</span>
+                            </div>
+                            <div class="equip-slot" data-slot="armor" onclick="Game.UI.openEquipPicker('armor')">
+                                <span class="slot-icon">🛡️</span>
+                                <span class="slot-label">Giáp</span>
+                                <span class="slot-item" id="slot-armor">Trống</span>
+                            </div>
+                            <div class="equip-slot" data-slot="accessory" onclick="Game.UI.openEquipPicker('accessory')">
+                                <span class="slot-icon">💍</span>
+                                <span class="slot-label">Phụ Kiện</span>
+                                <span class="slot-item" id="slot-accessory">Trống</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="equip-picker" class="hidden">
+                        <button class="btn btn-small btn-back" onclick="Game.UI.closeEquipPicker()">← Đóng</button>
+                        <div id="equip-picker-list" class="item-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sub-tab: Kỹ năng -->
+            <div id="subtab-skills" class="subtab-content">
+                <div class="panel">
+                    <h2>✨ Kỹ Năng Săn Thủ</h2>
+                    <div id="skill-select-hunter" class="hunter-cards"></div>
+                    <div id="skill-detail" class="hidden">
+                        <button class="btn btn-small btn-back" onclick="Game.UI.closeSkillDetail()">← Quay Lại</button>
+                        <h3 id="skill-hunter-name"></h3>
+                        <div id="skill-list" class="skill-grid"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== TAB: THỊ TRẤN ===== -->
+        <section id="tab-town" class="tab-content">
+            <div class="sub-tabs">
+                <button class="sub-tab-btn active" data-subtab="buildings">Tòa Nhà</button>
+                <button class="sub-tab-btn" data-subtab="upgrade">Nâng Cấp TP</button>
+                <button class="sub-tab-btn" data-subtab="rebirth">Tái Sinh</button>
+                <button class="sub-tab-btn" data-subtab="stats">Thống Kê</button>
+            </div>
+
+            <!-- Sub-tab: Tòa nhà -->
+            <div id="subtab-buildings" class="subtab-content active">
+                <div class="panel">
+                    <h2>🏗️ Tòa Nhà Thị Trấn</h2>
+                    <div id="building-list" class="building-cards"></div>
+                </div>
+            </div>
+
+            <!-- Sub-tab: Nâng cấp TP -->
+            <div id="subtab-upgrade" class="subtab-content">
+                <div class="panel">
+                    <h2>⬆️ Nâng Cấp Thị Trấn</h2>
+                    <div id="town-upgrade-info"></div>
+                </div>
+            </div>
+
+            <!-- Sub-tab: Tái sinh -->
+            <div id="subtab-rebirth" class="subtab-content">
+                <div class="panel">
+                    <h2>♻️ Tái Sinh Săn Thủ</h2>
+                    <p>Tái sinh săn thủ để tăng tiềm năng vĩnh viễn. Săn thủ sẽ mất cấp nhưng nhận được điểm tiềm năng.</p>
+                    <div id="rebirth-select" class="hunter-cards"></div>
+                    <div id="rebirth-info" class="hidden"></div>
+                </div>
+            </div>
+
+            <!-- Sub-tab: Thống kê -->
+            <div id="subtab-stats" class="subtab-content">
+                <div class="panel">
+                    <h2>📊 Thống Kê</h2>
+                    <div id="town-stats"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== TAB: SĂN ĐÁNH ===== -->
+        <section id="tab-battle" class="tab-content">
+            <div class="sub-tabs">
+                <button class="sub-tab-btn active" data-subtab="explore">Khám Phá</button>
+                <button class="sub-tab-btn" data-subtab="boss">Boss</button>
+                <button class="sub-tab-btn" data-subtab="dungeon">Địa Hạ</button>
+                <button class="sub-tab-btn" data-subtab="log">Nhật Ký</button>
+            </div>
+
+            <!-- Sub-tab: Khám phá -->
+            <div id="subtab-explore" class="subtab-content active">
+                <div class="panel">
+                    <h2>🗺️ Khu Vực Săn</h2>
+                    <div id="zone-list" class="zone-cards"></div>
+                </div>
+            </div>
+
+            <!-- Sub-tab: Boss -->
+            <div id="subtab-boss" class="subtab-content">
+                <div class="panel">
+                    <h2>👹 Kêu Gọi Boss</h2>
+                    <p>Sử dụng Sừng Boss để triệu hồi. Tất cả săn thủ đang nghỉ ngơi sẽ tập hợp chiến đấu!</p>
+                    <div id="boss-summon"></div>
+                </div>
+            </div>
+
+            <!-- Sub-tab: Địa hạ -->
+            <div id="subtab-dungeon" class="subtab-content">
+                <div class="panel">
+                    <h2>🏚️ Địa Hạ</h2>
+                    <p>Gửi săn thủ vào địa hạ để nhận phần thưởng hiếm. Săn thủ có thể bị thương nặng!</p>
+                    <div id="dungeon-list" class="dungeon-cards"></div>
+                </div>
+            </div>
+
+            <!-- Sub-tab: Nhật ký -->
+            <div id="subtab-log" class="subtab-content">
+                <div class="panel">
+                    <h2>📜 Nhật Ký Chiến Đấu</h2>
+                    <div id="battle-log" class="log-container"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== TAB: KHO ĐỒ ===== -->
+        <section id="tab-inventory" class="tab-content">
+            <div class="sub-tabs">
+                <button class="sub-tab-btn active" data-subtab="items">Vật Phẩm</button>
+                <button class="sub-tab-btn" data-subtab="craft">Rèn Đồ</button>
+                <button class="sub-tab-btn" data-subtab="sell">Bán Hàng</button>
+                <button class="sub-tab-btn" data-subtab="materials">Nguyên Liệu</button>
+            </div>
+
+            <!-- Sub-tab: Vật phẩm -->
+            <div id="subtab-items" class="subtab-content active">
+                <div class="panel">
+                    <h2>🎒 Vật Phẩm</h2>
+                    <div id="item-filter" class="filter-bar">
+                        <button class="filter-btn active" data-filter="all">Tất Cả</button>
+                        <button class="filter-btn" data-filter="weapon">🗡️ Vũ Khí</button>
+                        <button class="filter-btn" data-filter="armor">🛡️ Giáp</button>
+                        <button class="filter-btn" data-filter="accessory">💍 Phụ Kiện</button>
+                        <button class="filter-btn" data-filter="consumable">🧪 Tiêu Hao</button>
+                    </div>
+                    <div id="inventory-list" class="item-grid"></div>
+                </div>
+            </div>
+
+            <!-- Sub-tab: Rèn đồ -->
+            <div id="subtab-craft" class="subtab-content">
+                <div class="panel">
+                    <h2>🔨 Lò Rèn</h2>
+                    <div id="craft-recipes" class="recipe-list"></div>
+                </div>
+            </div>
+
+            <!-- Sub-tab: Bán hàng -->
+            <div id="subtab-sell" class="subtab-content">
+                <div class="panel">
+                    <h2>💰 Bán Vật Phẩm</h2>
+                    <div id="sell-list" class="item-grid"></div>
+                </div>
+            </div>
+
+            <!-- Sub-tab: Nguyên liệu -->
+            <div id="subtab-materials" class="subtab-content">
+                <div class="panel">
+                    <h2>📦 Kho Nguyên Liệu</h2>
+                    <div id="materials-list" class="materials-grid"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== TAB: THÚ CƯỠI ===== -->
+        <section id="tab-pets" class="tab-content">
+            <div class="sub-tabs">
+                <button class="sub-tab-btn active" data-subtab="ranch">Trang Trại</button>
+                <button class="sub-tab-btn" data-subtab="egg">Trứng Sáng</button>
+                <button class="sub-tab-btn" data-subtab="pet-equip">Gắn Thú</button>
+            </div>
+
+            <!-- Sub-tab: Trang trại -->
+            <div id="subtab-ranch" class="subtab-content active">
+                <div class="panel">
+                    <h2>🐎 Trang Trại Thú Cưỡi</h2>
+                    <div id="pet-list" class="pet-cards"></div>
+                </div>
+            </div>
+
+            <!-- Sub-tab: Trứng -->
+            <div id="subtab-egg" class="subtab-content">
+                <div class="panel">
+                    <h2>🥚 Trứng Sáng</h2>
+                    <p>Sử dụng Trứng Sáng (nhận từ Boss) để triệu hồi thú cưỡi!</p>
+                    <button id="btn-hatch" class="btn btn-primary" onclick="Game.Pets.hatchEgg()">
+                        🥚 Mở Trứng (1 💎)
+                    </button>
+                    <div id="hatch-result" class="hidden"></div>
+                </div>
+            </div>
+
+            <!-- Sub-tab: Gắn thú -->
+            <div id="subtab-pet-equip" class="subtab-content">
+                <div class="panel">
+                    <h2>🔗 Gắn Thú Cưỡi Cho Săn Thủ</h2>
+                    <div id="pet-equip-list" class="hunter-cards"></div>
+                    <div id="pet-assign-panel" class="hidden">
+                        <button class="btn btn-small btn-back" onclick="Game.Pets.closeAssign()">← Quay Lại</button>
+                        <div id="pet-assign-list" class="pet-cards"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== TAB: CỬA HÀNG ===== -->
+        <section id="tab-shop" class="tab-content">
+            <div class="sub-tabs">
+                <button class="sub-tab-btn active" data-subtab="general">Tổng Quát</button>
+                <button class="sub-tab-btn" data-subtab="daily">Hàng Ngày</button>
+                <button class="sub-tab-btn" data-subtab="prestige">Điểm Danh</button>
+            </div>
+
+            <!-- Sub-tab: Tổng quát -->
+            <div id="subtab-general" class="subtab-content active">
+                <div class="panel">
+                    <h2>🏪 Cửa Hàng Tổng Quát</h2>
+                    <div id="shop-general" class="shop-grid"></div>
+                </div>
+            </div>
+
+            <!-- Sub-tab: Hàng ngày -->
+            <div id="subtab-daily" class="subtab-content">
+                <div class="panel">
+                    <h2>📅 Nhiệm Vụ Hàng Ngày</h2>
+                    <div id="daily-quests" class="quest-list"></div>
+                </div>
+            </div>
+
+            <!-- Sub-tab: Điểm danh -->
+            <div id="subtab-prestige" class="subtab-content">
+                <div class="panel">
+                    <h2>🗓️ Điểm Danh</h2>
+                    <div id="daily-checkin" class="checkin-grid"></div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ========== NOTIFICATION ========== -->
+    <div id="notification" class="notification hidden">
+        <span id="notification-text"></span>
+    </div>
+
+    <!-- ========== MODAL ========== -->
+    <div id="modal-overlay" class="modal-overlay hidden">
+        <div id="modal-box" class="modal-box">
+            <div id="modal-header" class="modal-header"></div>
+            <div id="modal-body" class="modal-body"></div>
+            <div id="modal-footer" class="modal-footer">
+                <button class="btn btn-secondary" onclick="Game.UI.closeModal()">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== OFFLINE POPUP ========== -->
+    <div id="offline-popup" class="modal-overlay hidden">
+        <div class="modal-box">
+            <div class="modal-header">🌙 Báo Cáo Offline</div>
+            <div class="modal-body" id="offline-body"></div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="Game.UI.closeOfflinePopup()">Nhận Phần Thưởng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="data.js"></script>
+    <script src="game.js"></script>
+    <script src="hunters.js"></script>
+    <script src="battle.js"></script>
+    <script src="town.js"></script>
+    <script src="pets.js"></script>
+    <script src="ui.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
