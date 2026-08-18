@@ -163,13 +163,23 @@ class App {
       });
     });
 
-    // Sub-Tabs in Forge (Weapons, Armors, Enchant)
+    // Sub-Tabs in Forge (Weapons, Armors, Rings, Amulets, Talismans)
     document.querySelectorAll('.sub-tab').forEach(tab => {
       tab.addEventListener('click', (e) => {
         document.querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
         e.target.classList.add('active');
         self.currentForgeCat = e.target.getAttribute('data-forge-cat');
         self.populateForgeModal();
+      });
+    });
+
+    // Sub-Tabs in Research Tech Tree
+    document.querySelectorAll('#research-subnav-bar .btn-subnav').forEach(tab => {
+      tab.addEventListener('click', (e) => {
+        document.querySelectorAll('#research-subnav-bar .btn-subnav').forEach(t => t.classList.remove('active'));
+        e.target.classList.add('active');
+        self.currentResearchBranch = e.target.getAttribute('data-filter') || 'all';
+        self.populateResearchModal(self.currentResearchBranch);
       });
     });
 
@@ -219,6 +229,7 @@ class App {
     document.getElementById('btn-summon-special-1')?.addEventListener('click', () => self.performSummon(1));
     document.getElementById('btn-summon-special-10')?.addEventListener('click', () => self.performSummon(10));
     document.getElementById('btn-admit-all')?.addEventListener('click', () => self.admitAllWaiting());
+    document.getElementById('btn-dismiss-all')?.addEventListener('click', () => self.dismissAllWaiting());
     
     // Toggle Rates Table
     document.getElementById('btn-toggle-rates')?.addEventListener('click', () => {
@@ -276,18 +287,6 @@ class App {
       } else {
         crt.classList.add('scanlines');
         e.target.textContent = "Bật";
-      }
-    });
-    document.getElementById('btn-setting-speed')?.addEventListener('click', (e) => {
-      if (self.gameSpeed === 1) {
-        self.gameSpeed = 2;
-        e.target.textContent = "2x (Nhanh)";
-      } else if (self.gameSpeed === 2) {
-        self.gameSpeed = 3;
-        e.target.textContent = "3x (Cực Nhanh)";
-      } else {
-        self.gameSpeed = 1;
-        e.target.textContent = "1x (Chuẩn)";
       }
     });
 
@@ -395,118 +394,87 @@ class App {
           </div>
         `;
       });
-    } else if (cat === 'enchant') {
-      const forgeLvl = window.gameState.buildings.forge?.level || 1;
-      const maxEnchant = typeof Building !== 'undefined' && Building.getMaxEnchantLevel ? Building.getMaxEnchantLevel(forgeLvl) : Math.min(30, forgeLvl * 5);
-      const hunters = window.gameState.hunters || [];
+    } else if (cat === 'rings') {
+      (CONFIG.RECIPES.rings || []).forEach(r => {
+        const matReq = Object.entries(r.materials).map(([m, c]) => {
+          const has = window.gameState.storage[m] || 0;
+          const color = has >= c ? '#39ff14' : '#ff3366';
+          const mName = CONFIG.ITEMS[m] ? CONFIG.ITEMS[m].name : m;
+          return `<span style="color:${color}">${c}x ${mName} (${has}/${c})</span>`;
+        }).join(", ");
 
-      let limitInfo = `
-        <div style="background:linear-gradient(135deg, rgba(255,107,0,0.12), rgba(0,229,255,0.08)); border:1px solid rgba(255,107,0,0.35); border-radius:6px; padding:8px 12px; margin-bottom:10px;">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <div style="font-weight:bold; font-size:12px; color:#ff9d00;">
-              🔥 LÒ RÈN CẤP ${forgeLvl}: GIỚI HẠN CƯỜNG HÓA TỐI ĐA <span style="color:#39ff14; font-size:13px;">+${maxEnchant}</span>
+        const fee = r.craftFee || 10;
+        const feeStr = CONFIG.formatNumber ? CONFIG.formatNumber(fee) : fee.toLocaleString();
+        const costStr = CONFIG.formatNumber ? CONFIG.formatNumber(r.costGold) : r.costGold.toLocaleString();
+
+        html += `
+          <div class="item-card" style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; margin-bottom:8px;">
+            <div class="item-info" style="flex:1;">
+              <div class="item-name rarity-${r.rarity}" style="font-size:13px;">${r.icon} ${r.name}</div>
+              <div class="item-stats" style="font-size:11px; margin-top:2px;">⚡ <b>+${r.atk}</b> ATK | 💥 <b>+${r.crit}%</b> Crit | Yêu cầu: <b>Lv.${r.reqLvl}</b></div>
+              <div class="item-cost" style="font-size:11px; margin-top:3px;">📦 Nguyên liệu trong kho: ${matReq}</div>
+              <div style="font-size:11px; margin-top:2px; color:#b0bec5;">Phí chế tạo: 💰${feeStr} GOLD | Giá thợ săn tự mua: <b style="color:#ffd700;">💰${costStr} GOLD</b></div>
             </div>
-            <div style="font-size:10px; color:#aaa;">
-              ${maxEnchant >= 30 ? '<b style="color:#ffd700;">⭐ ĐẠT MỐC MAX (+30)</b>' : `Cấp tới mở: <b style="color:#39ff14;">+${Math.min(30, maxEnchant + 5)}</b>`}
+            <div style="text-align:right; margin-left:10px;">
+              <span style="font-size:10px; font-weight:bold; color:#39ff14; background:rgba(57,255,20,0.1); padding:4px 8px; border-radius:4px; border:1px solid rgba(57,255,20,0.3);">🤖 TỰ ĐỘNG MUA</span>
             </div>
           </div>
-          <div style="font-size:10px; color:#b0bec5; margin-top:4px;">
-            🤖 <b>Cơ chế Tự Động</b>: Thợ săn sẽ tự động dùng tiền túi ghé Lò Rèn để đập đồ khi tích lũy đủ vàng từ việc đi săn!
-          </div>
-        </div>
-      `;
+        `;
+      });
+    } else if (cat === 'amulets') {
+      (CONFIG.RECIPES.amulets || []).forEach(r => {
+        const matReq = Object.entries(r.materials).map(([m, c]) => {
+          const has = window.gameState.storage[m] || 0;
+          const color = has >= c ? '#39ff14' : '#ff3366';
+          const mName = CONFIG.ITEMS[m] ? CONFIG.ITEMS[m].name : m;
+          return `<span style="color:${color}">${c}x ${mName} (${has}/${c})</span>`;
+        }).join(", ");
 
-      if (hunters.length === 0) {
-        html = limitInfo + `<div style="text-align:center; padding:15px; color:var(--text-muted);">Thị trấn chưa có thợ săn nào để cường hóa trang bị!</div>`;
-      } else {
-        html = limitInfo;
-        hunters.forEach(h => {
-          const wpnPlus = h.weaponPlus || 0;
-          const amrPlus = h.armorPlus || 0;
+        const fee = r.craftFee || 10;
+        const feeStr = CONFIG.formatNumber ? CONFIG.formatNumber(fee) : fee.toLocaleString();
+        const costStr = CONFIG.formatNumber ? CONFIG.formatNumber(r.costGold) : r.costGold.toLocaleString();
 
-          // Weapon Stats & Rates
-          const targetWpnPlus = wpnPlus + 1;
-          const wpnRate = CONFIG.getEnchantRate ? CONFIG.getEnchantRate(targetWpnPlus) : 0.8;
-          const wpnRatePct = Math.round(wpnRate * 100);
-          const wpnReqLvl = h.weapon?.reqLvl || h.level || 1;
-          const wpnCost = Math.floor(60 * Math.pow(1.18, wpnPlus) + Math.pow(1.045, wpnReqLvl) * 20);
-          const wpnCostStr = CONFIG.formatNumber ? CONFIG.formatNumber(wpnCost) : wpnCost.toLocaleString();
-          const wpnRateColor = wpnRatePct >= 60 ? '#39ff14' : (wpnRatePct >= 25 ? '#ffd700' : '#ff3366');
-
-          // Armor Stats & Rates
-          const targetAmrPlus = amrPlus + 1;
-          const amrRate = CONFIG.getEnchantRate ? CONFIG.getEnchantRate(targetAmrPlus) : 0.8;
-          const amrRatePct = Math.round(amrRate * 100);
-          const amrReqLvl = h.armor?.reqLvl || h.level || 1;
-          const amrCost = Math.floor(50 * Math.pow(1.18, amrPlus) + Math.pow(1.045, amrReqLvl) * 16);
-          const amrCostStr = CONFIG.formatNumber ? CONFIG.formatNumber(amrCost) : amrCost.toLocaleString();
-          const amrRateColor = amrRatePct >= 60 ? '#39ff14' : (amrRatePct >= 25 ? '#ffd700' : '#ff3366');
-
-          const hunterGoldStr = CONFIG.formatNumber ? CONFIG.formatNumber(h.gold) : h.gold.toLocaleString();
-
-          html += `
-            <div class="item-card" style="margin-bottom:10px; padding:10px 12px; display:flex; flex-direction:column; gap:8px;">
-              <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:6px;">
-                <div style="font-weight:bold; font-size:13px; color:#ffffff;">
-                  ${h.getGlyph ? h.getGlyph() : '🏹'} ${h.name} <span style="font-size:11px; color:#ffd700;">(Lv.${h.level} | Tiền túi: 💰${hunterGoldStr} GOLD)</span>
-                </div>
-              </div>
-              
-              <!-- WEAPON ENCHANT ROW -->
-              <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); padding:8px 10px; border-radius:4px;">
-                <div style="flex:1;">
-                  <div style="font-size:12px;">
-                    🗡️ Vũ khí: <b style="color:${wpnPlus > 0 ? '#39ff14' : '#fff'};">${h.weapon ? h.weapon.name : 'Chưa có'} +${wpnPlus}</b>
-                    ${wpnPlus < 30 ? `<span style="font-size:10px; color:#00e5ff;">(+${wpnPlus * 10}% ATK)</span>` : `<b style="color:#ffd700; font-size:10px;">(MAX +30)</b>`}
-                  </div>
-                  ${wpnPlus >= 30 ? 
-                    `<div style="font-size:10px; margin-top:2px; color:#ffd700; font-weight:bold;">⭐ Đã đạt cấp cường hóa tối thượng (+30)</div>` : 
-                    (wpnPlus >= maxEnchant ? 
-                      `<div style="font-size:10px; margin-top:2px; color:#ff9d00;">🔒 Chạm trần Lò Rèn (+${maxEnchant}) - Cần nâng cấp Lò Rèn để đập tiếp</div>` : 
-                      `<div style="font-size:10px; margin-top:2px; color:${wpnRateColor};">🎯 Tỉ lệ lên +${targetWpnPlus}: <b>${wpnRatePct}%</b> (Phí tự đập: 💰${wpnCostStr} GOLD)</div>`
-                    )
-                  }
-                </div>
-                <div style="text-align:right;">
-                  ${wpnPlus >= 30 ? 
-                    `<span style="font-size:11px; color:#ffd700; font-weight:bold; background:rgba(255,215,0,0.15); padding:3px 8px; border-radius:4px; border:1px solid #ffd700;">⭐ MAX</span>` : 
-                    (wpnPlus >= maxEnchant ? 
-                      `<span style="font-size:10px; color:#ff9d00; font-weight:bold; background:rgba(255,157,0,0.15); padding:3px 8px; border-radius:4px; border:1px solid #ff9d00;">🔒 KHÓA LÒ RÈN</span>` : 
-                      `<span style="font-size:10px; color:#39ff14; background:rgba(57,255,20,0.1); padding:3px 8px; border-radius:4px; border:1px solid rgba(57,255,20,0.3);">🤖 TỰ ĐỘNG</span>`
-                    )
-                  }
-                </div>
-              </div>
-
-              <!-- ARMOR ENCHANT ROW -->
-              <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); padding:8px 10px; border-radius:4px;">
-                <div style="flex:1;">
-                  <div style="font-size:12px;">
-                    🛡️ Áo giáp: <b style="color:${amrPlus > 0 ? '#39ff14' : '#fff'};">${h.armor ? h.armor.name : 'Chưa có'} +${amrPlus}</b>
-                    ${amrPlus < 30 ? `<span style="font-size:10px; color:#00e5ff;">(+${amrPlus * 10}% DEF/HP)</span>` : `<b style="color:#ffd700; font-size:10px;">(MAX +30)</b>`}
-                  </div>
-                  ${amrPlus >= 30 ? 
-                    `<div style="font-size:10px; margin-top:2px; color:#ffd700; font-weight:bold;">⭐ Đã đạt cấp cường hóa tối thượng (+30)</div>` : 
-                    (amrPlus >= maxEnchant ? 
-                      `<div style="font-size:10px; margin-top:2px; color:#ff9d00;">🔒 Chạm trần Lò Rèn (+${maxEnchant}) - Cần nâng cấp Lò Rèn để đập tiếp</div>` : 
-                      `<div style="font-size:10px; margin-top:2px; color:${amrRateColor};">🎯 Tỉ lệ lên +${targetAmrPlus}: <b>${amrRatePct}%</b> (Phí tự đập: 💰${amrCostStr} GOLD)</div>`
-                    )
-                  }
-                </div>
-                <div style="text-align:right;">
-                  ${amrPlus >= 30 ? 
-                    `<span style="font-size:11px; color:#ffd700; font-weight:bold; background:rgba(255,215,0,0.15); padding:3px 8px; border-radius:4px; border:1px solid #ffd700;">⭐ MAX</span>` : 
-                    (amrPlus >= maxEnchant ? 
-                      `<span style="font-size:10px; color:#ff9d00; font-weight:bold; background:rgba(255,157,0,0.15); padding:3px 8px; border-radius:4px; border:1px solid #ff9d00;">🔒 KHÓA LÒ RÈN</span>` : 
-                      `<span style="font-size:10px; color:#39ff14; background:rgba(57,255,20,0.1); padding:3px 8px; border-radius:4px; border:1px solid rgba(57,255,20,0.3);">🤖 TỰ ĐỘNG</span>`
-                    )
-                  }
-                </div>
-              </div>
+        html += `
+          <div class="item-card" style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; margin-bottom:8px;">
+            <div class="item-info" style="flex:1;">
+              <div class="item-name rarity-${r.rarity}" style="font-size:13px;">${r.icon} ${r.name}</div>
+              <div class="item-stats" style="font-size:11px; margin-top:2px;">🛡️ <b>+${r.def}</b> DEF | ❤️ <b>+${r.hp}</b> HP | 💥 <b>+${r.critDmg}%</b> Sát Thương Chí Mạng | Yêu cầu: <b>Lv.${r.reqLvl}</b></div>
+              <div class="item-cost" style="font-size:11px; margin-top:3px;">📦 Nguyên liệu trong kho: ${matReq}</div>
+              <div style="font-size:11px; margin-top:2px; color:#b0bec5;">Phí chế tạo: 💰${feeStr} GOLD | Giá thợ săn tự mua: <b style="color:#ffd700;">💰${costStr} GOLD</b></div>
             </div>
-          `;
-        });
-      }
+            <div style="text-align:right; margin-left:10px;">
+              <span style="font-size:10px; font-weight:bold; color:#39ff14; background:rgba(57,255,20,0.1); padding:4px 8px; border-radius:4px; border:1px solid rgba(57,255,20,0.3);">🤖 TỰ ĐỘNG MUA</span>
+            </div>
+          </div>
+        `;
+      });
+    } else if (cat === 'talismans') {
+      (CONFIG.RECIPES.talismans || []).forEach(r => {
+        const matReq = Object.entries(r.materials).map(([m, c]) => {
+          const has = window.gameState.storage[m] || 0;
+          const color = has >= c ? '#39ff14' : '#ff3366';
+          const mName = CONFIG.ITEMS[m] ? CONFIG.ITEMS[m].name : m;
+          return `<span style="color:${color}">${c}x ${mName} (${has}/${c})</span>`;
+        }).join(", ");
+
+        const fee = r.craftFee || 10;
+        const feeStr = CONFIG.formatNumber ? CONFIG.formatNumber(fee) : fee.toLocaleString();
+        const costStr = CONFIG.formatNumber ? CONFIG.formatNumber(r.costGold) : r.costGold.toLocaleString();
+
+        html += `
+          <div class="item-card" style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; margin-bottom:8px;">
+            <div class="item-info" style="flex:1;">
+              <div class="item-name rarity-${r.rarity}" style="font-size:13px;">${r.icon} ${r.name}</div>
+              <div class="item-stats" style="font-size:11px; margin-top:2px;">⚡ <b>+${r.atk}</b> ATK | 🎯 <b>+${r.critRate}%</b> Tỉ Lệ Chí Mạng | Yêu cầu: <b>Lv.${r.reqLvl}</b></div>
+              <div class="item-cost" style="font-size:11px; margin-top:3px;">📦 Nguyên liệu trong kho: ${matReq}</div>
+              <div style="font-size:11px; margin-top:2px; color:#b0bec5;">Phí chế tạo: 💰${feeStr} GOLD | Giá thợ săn tự mua: <b style="color:#ffd700;">💰${costStr} GOLD</b></div>
+            </div>
+            <div style="text-align:right; margin-left:10px;">
+              <span style="font-size:10px; font-weight:bold; color:#39ff14; background:rgba(57,255,20,0.1); padding:4px 8px; border-radius:4px; border:1px solid rgba(57,255,20,0.3);">🤖 TỰ ĐỘNG MUA</span>
+            </div>
+          </div>
+        `;
+      });
     }
 
     list.innerHTML = html;
@@ -530,7 +498,7 @@ class App {
     const elGuests = document.getElementById('inn-active-guests');
     if (elGuests) elGuests.textContent = `${guests} Thợ săn đang ngủ`;
     const elRev = document.getElementById('inn-revenue');
-    if (elRev) elRev.textContent = `${(b.revenue || 0).toLocaleString()}g`;
+    if (elRev) elRev.textContent = `💰${CONFIG.formatNumber(b.revenue || 0)}`;
 
     const descEl = document.querySelector('#modal-inn .modal-desc');
     if (descEl) {
@@ -728,7 +696,7 @@ class App {
           </div>
           <div class="up-cost-row">
             <div class="up-gold" style="color: ${goldOk ? '#ffd700' : '#ff5577'}">
-              💰 Chi phí: <b>${nextUp.gold.toLocaleString()}g</b> (Có: ${window.gameState.gold.toLocaleString()}g)
+              💰 Chi phí: <b>${CONFIG.formatNumber(nextUp.gold)} GOLD</b> (Có: 💰${CONFIG.formatNumber(window.gameState.gold)})
             </div>
             <div class="up-materials">
               ${matHtml}
@@ -816,7 +784,7 @@ class App {
                 <div class="bar-fill exp" style="width:${pct}%;"></div>
               </div>
               <div style="font-size:10px; color:var(--text-muted);">
-                Tiến độ: <b style="color:${isDone ? '#39ff14' : '#00e5ff'};">${b.current}/${b.count}</b> | Thưởng: 💰+${b.rewardGold.toLocaleString()}g | <b style="color:#00e5ff;">💠+${b.rewardGems}</b>
+                Tiến độ: <b style="color:${isDone ? '#39ff14' : '#00e5ff'};">${b.current}/${b.count}</b> | Thưởng: 💰+${CONFIG.formatNumber(b.rewardGold)} | <b style="color:#00e5ff;">💠+${CONFIG.formatNumber(b.rewardGems)}</b>
               </div>
             </div>
             <button class="${isDone ? 'btn-primary' : 'btn-secondary'} btn-xs" ${isDone ? '' : 'disabled'} onclick="window.app.claimBounty(${idx})">
@@ -910,7 +878,7 @@ class App {
 
     window.gameState.addGold(b.rewardGold);
     window.gameState.gems += b.rewardGems;
-    window.logTicker.add(`🎁 [NHẬN THƯỞNG QUEST]: [${b.title}] hoàn thành! (+${b.rewardGold.toLocaleString()}g, +${b.rewardGems} 💠 Ngọc Triệu Hồi)`, 'loot');
+    window.logTicker.add(`🎁 [NHẬN THƯỞNG QUEST]: [${b.title}] hoàn thành! (💰+${CONFIG.formatNumber(b.rewardGold)}, +${CONFIG.formatNumber(b.rewardGems)} 💠 Ngọc Triệu Hồi)`, 'loot');
     if (window.soundFX) window.soundFX.playLevelUp();
 
     // Replace with a new random quest template scaled by Town Level
@@ -1079,7 +1047,7 @@ class App {
     html += `
       <div style="background:linear-gradient(90deg, rgba(255,170,0,0.15), rgba(0,0,0,0.4)); border:1px solid rgba(255,170,0,0.3); border-radius:6px; padding:8px 12px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
         <span style="color:#ffaa00; font-weight:bold; font-size:12px;">⚔️ TỔNG LỰC CHIẾN THỊ TRẤN:</span>
-        <b style="color:#ffd700; font-size:14px; text-shadow:0 0 8px rgba(255,215,0,0.5);">${CONFIG.formatNumber ? CONFIG.formatNumber(totalTownPower) : totalTownPower.toLocaleString()} CP <span style="font-size:11px; color:var(--text-muted); font-weight:normal;">(${totalTownPower.toLocaleString()})</span></b>
+        <b style="color:#ffd700; font-size:14px; text-shadow:0 0 8px rgba(255,215,0,0.5);">${CONFIG.formatNumber(totalTownPower)} CP</b>
       </div>
     `;
 
@@ -1091,17 +1059,25 @@ class App {
       const cls = CONFIG.HUNTER_CLASSES[h.classKey];
       const starTxt = h.reincarnation > 0 ? `<span style="color:#ffd700;">${'⭐'.repeat(h.reincarnation)}</span> ` : '';
       const cp = h.getCombatPower ? h.getCombatPower() : 0;
-      const cpStr = CONFIG.formatNumber ? CONFIG.formatNumber(cp) : cp.toLocaleString();
+      const cpStr = CONFIG.formatNumber(cp);
 
       html += `
         <div class="item-card" style="align-items:center; gap:8px;">
           <div class="item-info" onclick="window.app.openHunterDetail('${h.id}')" style="cursor:pointer; flex:1;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
               <div class="item-name" style="color:${rank.color};">${cls.icon} ${starTxt}${h.name} [Lv.${h.level}] (${rank.name})</div>
-              <span style="color:#ffaa00; font-weight:bold; font-size:11px; background:rgba(255,170,0,0.15); padding:2px 6px; border-radius:3px; border:1px solid rgba(255,170,0,0.3);" title="Lực Chiến: ${cp.toLocaleString()} CP">⚔️ ${cpStr} CP</span>
+              <span style="color:#ffaa00; font-weight:bold; font-size:11px; background:rgba(255,170,0,0.15); padding:2px 6px; border-radius:3px; border:1px solid rgba(255,170,0,0.3);" title="Lực Chiến: ${CONFIG.formatNumber(cp)} CP">⚔️ ${cpStr} CP</span>
             </div>
-            <div class="item-stats">❤️ ${Math.round(h.hp)}/${h.maxHp} | ⚡ ATK: ${h.getTotalAtk()} | 🛡️ DEF: ${h.getTotalDef()}</div>
-            <div class="item-cost">Đặc tính: ${h.trait.icon} ${h.trait.name} | Trạng thái: ${h.activityLog}</div>
+            <div class="item-stats">❤️ ${CONFIG.formatNumber(Math.round(h.hp))}/${CONFIG.formatNumber(h.maxHp)} | ⚡ ATK: ${CONFIG.formatNumber(h.getTotalAtk())} | 🛡️ DEF: ${CONFIG.formatNumber(h.getTotalDef())}</div>
+            <div class="item-cost">
+              Trang bị: 
+              <span style="color:${h.weapon ? '#39ff14' : 'var(--text-muted)'};">${h.weapon ? `${h.weapon.icon} +${h.weaponPlus || 0}` : '🗡️ Trống'}</span> | 
+              <span style="color:${h.armor ? '#39ff14' : 'var(--text-muted)'};">${h.armor ? `${h.armor.icon} +${h.armorPlus || 0}` : '🦺 Trống'}</span> | 
+              <span style="color:${h.ring ? '#39ff14' : 'var(--text-muted)'};">${h.ring ? `${h.ring.icon} +${h.ringPlus || 0}` : '💍 Trống'}</span> | 
+              <span style="color:${h.amulet ? '#39ff14' : 'var(--text-muted)'};">${h.amulet ? `${h.amulet.icon} +${h.amuletPlus || 0}` : '📿 Trống'}</span> | 
+              <span style="color:${h.talisman ? '#39ff14' : 'var(--text-muted)'};">${h.talisman ? `${h.talisman.icon} +${h.talismanPlus || 0}` : '🔮 Trống'}</span>
+            </div>
+            <div class="item-cost" style="font-size:10px; color:var(--text-muted);">Đặc tính: ${h.trait.icon} ${h.trait.name} | Trạng thái: ${h.activityLog}</div>
           </div>
           <div style="display:flex; flex-direction:column; gap:4px;">
             <button class="btn-secondary btn-xs" onclick="window.app.openHunterDetail('${h.id}')">Chi Tiết 🔍</button>
@@ -1156,7 +1132,7 @@ class App {
         </div>
         <div style="display:flex; gap:6px; width:100%; margin-top:4px;">
           <button class="btn-secondary btn-xs" style="flex:1;" onclick="window.app.expandStorage()">
-            Mở Rộng Thêm (+30 ô: <b style="color:${canAffordExp ? '#ffd700' : '#ff5577'}">💰${expCost.toLocaleString()}g</b>)
+            Mở Rộng Thêm (+30 ô: <b style="color:${canAffordExp ? '#ffd700' : '#ff5577'}">💰${CONFIG.formatNumber(expCost)}</b>)
           </button>
           <button class="btn-danger btn-xs" style="flex:1;" onclick="window.app.sellExcessLoot()">🚢 Xuất Khẩu 50% Cho Thương Đội</button>
         </div>
@@ -1227,13 +1203,13 @@ class App {
         window.gameState.maxStorage += 30;
       }
       const nextCost = window.gameState.getStorageExpansionCost();
-      window.logTicker.add(`📦 [MỞ RỘNG KHO LẦN ${window.gameState.storageExpansions}]: +30 ô chứa đồ! (Sức chứa mới: ${window.gameState.maxStorage} món | Lần tới: 💰${nextCost.toLocaleString()}g)`, 'system');
+      window.logTicker.add(`📦 [MỞ RỘNG KHO LẦN ${window.gameState.storageExpansions}]: +30 ô chứa đồ! (Sức chứa mới: ${window.gameState.maxStorage} món | Lần tới: 💰${CONFIG.formatNumber(nextCost)})`, 'system');
       if (window.showToast) window.showToast(`Mở rộng kho thành công! Sức chứa hiện tại: ${window.gameState.maxStorage} món (+30 ô).`, 'success', '📦 MỞ RỘNG KHO');
       if (window.soundFX) window.soundFX.playForge();
       this.populateStorageModal();
       if (window.renderer) window.renderer.updateHeader();
     } else {
-      alert(`Thiếu vàng ngân khố: Cần 💰${cost.toLocaleString()}g (Hiện có: 💰${window.gameState.gold.toLocaleString()}g)!`);
+      alert(`Thiếu vàng ngân khố: Cần 💰${CONFIG.formatNumber(cost)} (Hiện có: 💰${CONFIG.formatNumber(window.gameState.gold)})!`);
     }
   }
 
@@ -1433,7 +1409,7 @@ class App {
           </div>
           <div class="up-cost-row">
             <div class="up-gold" style="color: ${goldOk ? '#ffd700' : '#ff5577'}">
-              💰 Chi phí: <b>${nextTown.gold.toLocaleString()}g</b> (Có: ${state.gold.toLocaleString()}g)
+              💰 Chi phí: <b>${CONFIG.formatNumber(nextTown.gold)} GOLD</b> (Có: 💰${CONFIG.formatNumber(state.gold)})
             </div>
             <div class="up-materials">
               ${matHtml}
@@ -1478,9 +1454,14 @@ class App {
 
     const wpnStr = hunter.weapon ? `${hunter.weapon.name} ${hunter.weaponPlus ? `<span style="color:#00e5ff">(+${hunter.weaponPlus})</span>` : ''} (+${hunter.getTotalAtk() - hunter.atk} ATK)` : 'Tay Không';
     const amrStr = hunter.armor ? `${hunter.armor.name} ${hunter.armorPlus ? `<span style="color:#ffd700">(+${hunter.armorPlus})</span>` : ''} (+${hunter.getTotalDef() - hunter.def} DEF)` : 'Vải Rách';
+    const ringStr = hunter.ring ? `${hunter.ring.name} ${hunter.ringPlus ? `<span style="color:#ffaa00">(+${hunter.ringPlus})</span>` : ''} (+${Math.floor(hunter.ring.atk * (1 + (hunter.ringPlus || 0) * 0.1))} ATK${hunter.ring.crit ? `, +${hunter.ring.crit}% Crit` : ''})` : 'Chưa có';
+    const amulStr = hunter.amulet ? `${hunter.amulet.name} ${hunter.amuletPlus ? `<span style="color:#00e5ff">(+${hunter.amuletPlus})</span>` : ''} (+${Math.floor(hunter.amulet.def * (1 + (hunter.amuletPlus || 0) * 0.1))} DEF, +${Math.floor(hunter.amulet.hp * (1 + (hunter.amuletPlus || 0) * 0.1))} HP, +${Math.floor((hunter.amulet.critDmg || 15) * (1 + (hunter.amuletPlus || 0) * 0.1))}% Crit DMG)` : 'Chưa có';
+    const talStr = hunter.talisman ? `${hunter.talisman.name} ${hunter.talismanPlus ? `<span style="color:#bd00ff">(+${hunter.talismanPlus})</span>` : ''} (+${Math.floor(hunter.talisman.atk * (1 + (hunter.talismanPlus || 0) * 0.1))} ATK, +${Math.floor((hunter.talisman.critRate || 6) * (1 + (hunter.talismanPlus || 0) * 0.1))}% Crit Rate)` : 'Chưa có';
 
     const cpVal = hunter.getCombatPower ? hunter.getCombatPower() : 0;
-    const cpStr = CONFIG.formatNumber ? CONFIG.formatNumber(cpVal) : cpVal.toLocaleString();
+    const cpStr = CONFIG.formatNumber(cpVal);
+    const critRatePct = Math.round((hunter.getCritRate ? hunter.getCritRate() : 0.05) * 100);
+    const critDmgPct = Math.round((hunter.getCritDamage ? hunter.getCritDamage() : 1.50) * 100);
 
     card.innerHTML = `
       <div class="hd-header-row">
@@ -1489,19 +1470,43 @@ class App {
       </div>
       <div style="background:rgba(255,170,0,0.12); border:1px solid rgba(255,170,0,0.3); border-radius:4px; padding:4px 8px; display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
         <span style="color:#ffaa00; font-weight:bold; font-size:11px;">⚔️ Lực Chiến (CP):</span>
-        <b style="color:#ffd700; font-size:14px; text-shadow:0 0 6px rgba(255,215,0,0.4);">${cpStr} CP <span style="font-size:11px; color:var(--text-muted); font-weight:normal;">(${cpVal.toLocaleString()})</span></b>
+        <b style="color:#ffd700; font-size:14px; text-shadow:0 0 6px rgba(255,215,0,0.4);">${cpStr} CP</b>
       </div>
+
+      <!-- COMBAT STATS 4-GRID (ATK, DEF, CRIT RATE, CRIT DAMAGE) -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin:6px 0;">
+        <div style="background:rgba(255,51,102,0.12); border:1px solid rgba(255,51,102,0.3); border-radius:4px; padding:5px 6px; text-align:center;">
+          <div style="font-size:9px; color:#ff88aa;">⚔️ SỨC TẤN CÔNG (ATK)</div>
+          <div style="font-size:14px; font-weight:bold; color:#ff3366; text-shadow:0 0 6px rgba(255,51,102,0.4);">${CONFIG.formatNumber(hunter.getTotalAtk())}</div>
+        </div>
+        <div style="background:rgba(0,229,255,0.12); border:1px solid rgba(0,229,255,0.3); border-radius:4px; padding:5px 6px; text-align:center;">
+          <div style="font-size:9px; color:#88eeff;">🛡️ PHÒNG NGỰ (DEF)</div>
+          <div style="font-size:14px; font-weight:bold; color:#00e5ff; text-shadow:0 0 6px rgba(0,229,255,0.4);">${CONFIG.formatNumber(hunter.getTotalDef())}</div>
+        </div>
+        <div style="background:rgba(189,0,255,0.12); border:1px solid rgba(189,0,255,0.3); border-radius:4px; padding:5px 6px; text-align:center;">
+          <div style="font-size:9px; color:#e088ff;">🎯 TỈ LỆ CHÍ MẠNG</div>
+          <div style="font-size:14px; font-weight:bold; color:#bd00ff; text-shadow:0 0 6px rgba(189,0,255,0.4);">${critRatePct}%</div>
+        </div>
+        <div style="background:rgba(255,170,0,0.12); border:1px solid rgba(255,170,0,0.3); border-radius:4px; padding:5px 6px; text-align:center;">
+          <div style="font-size:9px; color:#ffd088;">💥 SÁT THƯƠNG BẠO</div>
+          <div style="font-size:14px; font-weight:bold; color:#ffaa00; text-shadow:0 0 6px rgba(255,170,0,0.4);">${critDmgPct}%</div>
+        </div>
+      </div>
+
       <div>Cảnh Giới Đột Phá: <b style="color:#ffd700;">${starTxt}[${realmName}]</b> (Chuyển Sinh Cấp ${hunter.reincarnation || 0})</div>
       <div>Đặc Tính: <b>${hunter.trait.icon} ${hunter.trait.name}</b> (${hunter.trait.desc})</div>
       <div>🗡️ Vũ Khí: <b>${wpnStr}</b></div>
       <div>🦺 Áo Giáp: <b>${amrStr}</b></div>
-      <div>💰 Ví Tiền Cá Nhân: <b>${hunter.gold}g</b></div>
+      <div>💍 Nhẫn Cổ Ngữ: <b>${ringStr}</b></div>
+      <div>📿 Dây Chuyền: <b>${amulStr}</b></div>
+      <div>🔮 Pháp Bảo: <b>${talStr}</b></div>
+      <div>💰 Ví Tiền Cá Nhân: <b>💰${CONFIG.formatNumber(hunter.gold)}</b></div>
 
       <div class="stat-bars-block">
         <div class="bar-row">
           <span class="bar-label">Máu (HP):</span>
           <div class="bar-track"><div class="bar-fill hp" style="width: ${hpPct}%;"></div></div>
-          <span>${Math.round(hunter.hp)}/${hunter.maxHp}</span>
+          <span>${CONFIG.formatNumber(Math.round(hunter.hp))}/${CONFIG.formatNumber(hunter.maxHp)}</span>
         </div>
         <div class="bar-row">
           <span class="bar-label">Đói Bụng:</span>
@@ -1552,7 +1557,7 @@ class App {
             </div>
             <div style="display:flex; flex-direction:column; gap:4px; margin-bottom:8px;">
               <div style="font-size:10px; display:flex; justify-content:space-between;">
-                <span>Phí Ngân Khố: <b style="color:${goldOk ? '#ffd700' : '#ff5577'};">💰${bkInfo.gold.toLocaleString()}g</b> (Có: 💰${window.gameState.gold.toLocaleString()}g)</span>
+                <span>Phí Ngân Khố: <b style="color:${goldOk ? '#ffd700' : '#ff5577'};">💰${CONFIG.formatNumber(bkInfo.gold)}</b> (Có: 💰${CONFIG.formatNumber(window.gameState.gold)})</span>
                 <span style="color:#00e5ff; font-weight:bold;">🎲 Tỉ lệ thành công: <b style="color:#39ff14;">${Math.round((bkInfo.totalSuccessRate || 0.85) * 100)}%</b>${bkInfo.pityBonus > 0 ? ` <span style="color:#ffd700;">(+${Math.round(bkInfo.pityBonus * 100)}% May Mắn)</span>` : ''}</span>
               </div>
               <div style="display:flex; flex-wrap:wrap; gap:4px;">${matTags}</div>
@@ -1641,6 +1646,9 @@ class App {
     const maxFloor = state.dungeonMaxFloor || 0;
     const sweepsLeft = state.dungeonSweepsLeft !== undefined ? state.dungeonSweepsLeft : 5;
     const battle = state.dungeonActiveBattle;
+    const entryFee = (typeof DungeonSystem !== 'undefined' && DungeonSystem.getEntryFee)
+      ? DungeonSystem.getEntryFee(curFloor)
+      : 300;
 
     // Floor Selector Pills
     let floorPillsHtml = '';
@@ -1673,7 +1681,10 @@ class App {
             <div class="bar-track" style="height:4px; margin-top:2px;">
               <div class="bar-fill hp" style="width:${hpPct}%; background:${hpPct < 30 ? '#ff3366' : '#39ff14'};"></div>
             </div>
-            <div style="font-size:9px; color:var(--text-muted); text-align:right;">${Math.round(h.hp)}/${h.maxHp}</div>
+            <div style="display:flex; justify-content:space-between; font-size:9px; color:var(--text-muted); margin-top:2px;">
+              <span style="color:#ffaa00; font-weight:bold;">⚔️${CONFIG.formatNumber(h.atk)}</span>
+              <span>${CONFIG.formatNumber(Math.round(h.hp))}/${CONFIG.formatNumber(h.maxHp)}</span>
+            </div>
           </div>
         `;
       }).join('');
@@ -1718,7 +1729,7 @@ class App {
             <!-- Multi-layer Boss HP Bar -->
             <div class="boss-hp-bar-wrap" style="position:relative; width:100%; height:22px; background:#080d14; border:1.5px solid #ff3366; border-radius:4px; overflow:hidden; display:flex; align-items:center; box-shadow:0 0 8px rgba(255,51,102,0.4);">
               <div class="boss-hp-bar-fill" style="width:${bossPct}%; height:100%; background:linear-gradient(90deg, #ff0055, #ffaa00); transition:width 0.25s linear;"></div>
-              <span class="boss-hp-bar-text" style="position:absolute; width:100%; text-align:center; font-size:11px; font-weight:bold; color:#fff; text-shadow:0 1px 3px #000;">${Math.round(boss.hp).toLocaleString()} / ${boss.maxHp.toLocaleString()} HP (${bossPct}%)</span>
+              <span class="boss-hp-bar-text" style="position:absolute; width:100%; text-align:center; font-size:11px; font-weight:bold; color:#fff; text-shadow:0 1px 3px #000;">${CONFIG.formatNumber(Math.round(boss.hp))} / ${CONFIG.formatNumber(boss.maxHp)} HP (${bossPct}%)</span>
             </div>
           </div>
 
@@ -1776,9 +1787,9 @@ class App {
           <div style="font-size:11px; color:var(--text-muted); margin:4px 0 8px 0;">${floorData.desc}</div>
           
           <div style="display:flex; justify-content:center; gap:16px; font-size:11px; background:rgba(0,0,0,0.3); padding:6px; border-radius:4px; margin-bottom:10px;">
-            <span>❤️ Máu Boss: <b style="color:#ff5577;">${floorData.bossHp.toLocaleString()} HP</b></span>
-            <span>⚔️ Tấn Công: <b style="color:#ffaa00;">${floorData.bossAtk}</b></span>
-            <span>🛡️ Phòng Ngự: <b style="color:#00e5ff;">${floorData.bossDef}</b></span>
+            <span>❤️ Máu Boss: <b style="color:#ff5577;">${CONFIG.formatNumber(floorData.bossHp)} HP</b></span>
+            <span>⚔️ Tấn Công: <b style="color:#ffaa00;">${CONFIG.formatNumber(floorData.bossAtk)}</b></span>
+            <span>🛡️ Phòng Ngự: <b style="color:#00e5ff;">${CONFIG.formatNumber(floorData.bossDef)}</b></span>
           </div>
 
           <!-- Rewards Box -->
@@ -1797,46 +1808,51 @@ class App {
 
           <!-- Squad vs Boss Combat Power Matchup & Warning -->
           ${(() => {
-            const squadPower = window.gameState.hunters.reduce((s, h) => s + (h.getCombatPower ? h.getCombatPower() : 0), 0);
+            const raidTeam = (typeof DungeonSystem !== 'undefined' && DungeonSystem.getRaidTeam)
+              ? DungeonSystem.getRaidTeam()
+              : (window.gameState.hunters || []).slice(0, 5);
+            const squadPower = raidTeam.reduce((s, h) => s + (h.getCombatPower ? h.getCombatPower() : 0), 0);
             const reqPower = floorData.reqPower || 3000;
-            const squadStr = CONFIG.formatNumber ? CONFIG.formatNumber(squadPower) : squadPower.toLocaleString();
-            const reqStr = CONFIG.formatNumber ? CONFIG.formatNumber(reqPower) : reqPower.toLocaleString();
+            const squadStr = CONFIG.formatNumber(squadPower);
+            const reqStr = CONFIG.formatNumber(reqPower);
             const isSafe = squadPower >= reqPower;
             const diff = reqPower - squadPower;
-            const diffStr = CONFIG.formatNumber ? CONFIG.formatNumber(diff) : diff.toLocaleString();
+            const diffStr = CONFIG.formatNumber(diff);
 
             return `
               <div style="background:${isSafe ? 'rgba(57,255,20,0.08)' : 'rgba(255,51,102,0.15)'}; border:1px solid ${isSafe ? '#39ff14' : '#ff3366'}; border-radius:6px; padding:6px 10px; margin-bottom:10px; font-size:11px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
-                  <span>👥 Đội Viễn Chinh: <b style="color:#ffd700;">${squadStr} CP</b></span>
+                  <span>👥 Đội Viễn Chinh (Top 5 Mạnh Nhất: ${raidTeam.length}/5): <b style="color:#ffd700;">${squadStr} CP</b></span>
                   <span>⚠️ Yêu Cầu Tối Thiểu: <b style="color:#00e5ff;">${reqStr} CP</b></span>
                 </div>
                 <div style="display:flex; justify-content:space-between; align-items:center; font-size:10px;">
                   <span style="color:${isSafe ? '#39ff14' : '#ff5577'}; font-weight:bold;">
-                    ${isSafe ? '🟢 ĐỦ LỰC CHIẾN (Có thể chinh phục)' : `🚨 NGUY HIỂM - NGUY CƠ DIỆT VONG (Thiếu ${diffStr} CP)`}
+                    ${isSafe ? '🟢 ĐỦ LỰC CHIẾN (Đã mở khóa khiêu chiến)' : `🔒 KHÓA CỔNG KẾT GIỚI (Chưa đủ điều kiện - Thiếu ${diffStr} CP)`}
                   </span>
                   <span style="color:#ffaa00;">⏱️ Cuồng nộ: ${floorData.enrageSec || 45}s</span>
                 </div>
               </div>
+
+              <!-- Action Buttons -->
+              <div style="display:flex; gap:8px;">
+                ${isSafe ? `
+                  <button class="btn-primary" style="flex:1; background:linear-gradient(90deg, #ff3366, #bd00ff); font-weight:bold; font-size:13px; padding:10px;" onclick="window.app.startDungeonFloor(${curFloor})">
+                    ${isCleared ? `⚔️ TÁI CHIẾN FARM NGUYÊN LIỆU (💰 ${CONFIG.formatGold ? CONFIG.formatGold(entryFee) : `${entryFee} GOLD`})` : `⚔️ TIẾN VÀO KHIÊU CHIẾN BOSS (💰 ${CONFIG.formatGold ? CONFIG.formatGold(entryFee) : `${entryFee} GOLD`})`}
+                  </button>
+                ` : `
+                  <button class="btn-secondary" style="flex:1; opacity:0.65; cursor:not-allowed; padding:10px; font-weight:bold; font-size:12px; background:#22151c; border-color:#ff3366; color:#ff88aa;" disabled title="Cần đạt tối thiểu ${reqStr} CP">
+                    🔒 CHƯA ĐỦ LỰC CHIẾN (CẦN TỐI THIỂU ${reqStr} CP - THIẾU ${diffStr} CP)
+                  </button>
+                `}
+              </div>
             `;
           })()}
-
-          <!-- Action Buttons -->
-          <div style="display:flex; gap:8px;">
-            <button class="btn-primary" style="flex:1; background:linear-gradient(90deg, #ff3366, #bd00ff); font-weight:bold; font-size:13px; padding:10px;" onclick="window.app.startDungeonFloor(${curFloor})">
-              ${isCleared ? `⚔️ TÁI CHIẾN FARM NGUYÊN LIỆU (💰 ${CONFIG.formatGold ? CONFIG.formatGold(entryFee) : `${entryFee} GOLD`})` : `⚔️ TIẾN VÀO KHIÊU CHIẾN BOSS (💰 ${CONFIG.formatGold ? CONFIG.formatGold(entryFee) : `${entryFee} GOLD`})`}
-            </button>
-          </div>
         </div>
       </div>
     `;
   }
 
   populateRecruitModal() {
-    const spec = window.gameState.specialPity || 0;
-
-    const pSpec = document.getElementById('pity-special-txt');
-    const bSpec = document.getElementById('pity-special-bar');
     const popInfo = document.getElementById('gacha-pop-info');
     const waitCount = document.getElementById('waiting-count');
     const waitList = document.getElementById('waiting-hunter-list');
@@ -1846,8 +1862,6 @@ class App {
     const availableSlots = Math.max(0, maxHunters - curHunters);
     const waitingHunters = window.gameState.waitingHunters || [];
 
-    if (pSpec) pSpec.textContent = `${spec}/30 Lượt`;
-    if (bSpec) bSpec.style.width = `${(spec / 30) * 100}%`;
     if (popInfo) {
       popInfo.textContent = `${curHunters}/${maxHunters} (Trống: ${availableSlots})`;
       popInfo.style.color = availableSlots === 0 ? 'var(--accent-red)' : 'var(--accent-green)';
@@ -1963,6 +1977,31 @@ class App {
     if (window.renderer) window.renderer.renderAsciiMap();
   }
 
+  dismissAllWaiting() {
+    const waitingHunters = window.gameState.waitingHunters || [];
+    const count = waitingHunters.length;
+    if (count === 0) {
+      window.showToast("Hàng chờ chiêu mộ hiện đang trống!", "warning", "THÔNG BÁO");
+      return;
+    }
+
+    const totalGold = count * 30;
+    window.showConfirm(
+      `Bạn có chắc chắn muốn TRỤC XUẤT TOÀN BỘ ${count} thợ săn đang trong hàng chờ không?\n\n💰 Tiền bồi thường nhận lại: +${totalGold} GOLD (${count} x 30g).`,
+      "XÁC NHẬN TRỤC XUẤT HÀNG LOẠT",
+      () => {
+        window.gameState.waitingHunters = [];
+        window.gameState.gold += totalGold;
+        window.logTicker.add(`🚪 [TRỤC XUẤT HÀNG LOẠT]: Đã trục xuất toàn bộ ${count} thợ săn khỏi hàng chờ (+${totalGold}g đền bù)!`, 'system');
+        window.showToast(`Đã trục xuất ${count} thợ săn (+${totalGold}g)!`, 'warning', 'ĐÃ TRỤC XUẤT');
+        window.gameState.save();
+        this.populateRecruitModal();
+      },
+      null,
+      "🚪"
+    );
+  }
+
   performSummon(count = 1) {
     const waitingHunters = window.gameState.waitingHunters || [];
 
@@ -1993,25 +2032,24 @@ class App {
     let queuedCount = 0;
 
     for (let i = 0; i < count; i++) {
-      let rankKey = "SUPERIOR";
-      const roll = Math.random();
+      let rankKey = "NORMAL";
 
-      window.gameState.specialPity = (window.gameState.specialPity || 0) + 1;
-      
-      // Pity Check for Special Banner (Hard Pity at 30 guarantees LEGEND)
-      if (window.gameState.specialPity >= 30) {
+      // Tỉ lệ phẩm cấp:
+      // Huyền Thoại: 0.1%
+      // Anh Hùng: 1.0%
+      // Ưu Tú: 20.0%
+      // Hiếm: 80.0%
+      // Thường: 100% (cơ bản khi không trúng các phẩm cấp trên)
+      if (Math.random() < 0.001) {
         rankKey = "LEGEND";
-        window.gameState.specialPity = 0;
-      } else if (roll < 0.001) {
-        // 0.1% Legend S+
-        rankKey = "LEGEND";
-        window.gameState.specialPity = 0;
-      } else if (roll < 0.20) {
-        // 19.9% Heroic
+      } else if (Math.random() < 0.01) {
         rankKey = "HEROIC";
-      } else {
-        // 80.0% Superior
+      } else if (Math.random() < 0.20) {
         rankKey = "SUPERIOR";
+      } else if (Math.random() < 0.80) {
+        rankKey = "RARE";
+      } else {
+        rankKey = "NORMAL";
       }
 
       // Random Class
@@ -2048,7 +2086,10 @@ class App {
     results.forEach(h => {
       const rank = CONFIG.HUNTER_RANKS[h.rankKey];
       const cls = CONFIG.HUNTER_CLASSES[h.classKey];
-      const cardClass = h.rankKey === 'LEGEND' ? 'legend-card' : (h.rankKey === 'HEROIC' ? 'heroic-card' : (h.rankKey === 'SUPERIOR' ? 'superior-card' : ''));
+      const cardClass = h.rankKey === 'LEGEND' ? 'legend-card' : 
+        (h.rankKey === 'HEROIC' ? 'heroic-card' : 
+        (h.rankKey === 'SUPERIOR' ? 'superior-card' : 
+        (h.rankKey === 'RARE' ? 'rare-card' : 'normal-card')));
       const statusTag = h._admittedToTown ? `<span style="color:var(--accent-green);">[Đã vào thị trấn]</span>` : `<span style="color:var(--accent-cyan);">[Đang ở Hàng Chờ]</span>`;
 
       resHtml += `
@@ -2080,6 +2121,147 @@ class App {
     window.gameState.save();
     this.populateRecruitModal();
     if (window.renderer) window.renderer.renderAsciiMap();
+  }
+
+  // ==========================================
+  // VIỆN NGHIÊN CỨU CÔNG NGHỆ (RESEARCH TECH TREE)
+  // ==========================================
+  populateResearchModal(branchFilter = 'all') {
+    const list = document.getElementById('research-tech-list');
+    const header = document.getElementById('research-progress-header');
+    if (!list) return;
+
+    if (!window.gameState.researched) {
+      window.gameState.researched = {};
+    }
+
+    const allTechs = CONFIG.RESEARCH_TECHS || [];
+    const researchedCount = Object.keys(window.gameState.researched).filter(k => window.gameState.researched[k]).length;
+    const totalCount = allTechs.length;
+    const progressPct = Math.round((researchedCount / Math.max(1, totalCount)) * 100);
+
+    if (header) {
+      header.innerHTML = `
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:16px;">🔬</span>
+          <div>
+            <span style="font-weight:bold; color:var(--accent-cyan);">Tiến Độ Nghiên Cứu:</span>
+            <span style="color:#39ff14; font-weight:bold;">${researchedCount}/${totalCount} Công Nghệ (${progressPct}%)</span>
+          </div>
+        </div>
+        <div style="color:#ffd700; font-weight:bold;">💰 Ngân Khố: 💰${CONFIG.formatNumber(window.gameState.gold)}</div>
+      `;
+    }
+
+    const filteredTechs = branchFilter === 'all' 
+      ? allTechs 
+      : allTechs.filter(t => t.branch === branchFilter);
+
+    const branchIcons = {
+      economy: '💰',
+      military: '⚔️',
+      survival: '🧪',
+      hunting: '🏹'
+    };
+
+    const branchNames = {
+      economy: 'Kinh Tế & Thủ Thành',
+      military: 'Quân Sự & Bạo Kích',
+      survival: 'Y Thuật & Sinh Tồn',
+      hunting: 'Hầm Ngục & Săn Bắt'
+    };
+
+    let html = "";
+    filteredTechs.forEach(t => {
+      const isResearched = !!window.gameState.researched[t.id];
+      const townLvl = window.gameState.townLevel || 1;
+      const reqLvl = t.reqTownLvl || 1;
+      const isLevelMet = townLvl >= reqLvl;
+      const costStr = CONFIG.formatNumber ? CONFIG.formatNumber(t.costGold) : t.costGold.toLocaleString();
+      const canAfford = window.gameState.gold >= t.costGold;
+      const bIcon = branchIcons[t.branch] || '💡';
+      const bName = branchNames[t.branch] || t.branch;
+
+      let actionBtn = "";
+      if (isResearched) {
+        actionBtn = `
+          <span style="font-size:10px; font-weight:bold; color:#39ff14; background:rgba(57,255,20,0.12); padding:4px 8px; border-radius:4px; border:1px solid rgba(57,255,20,0.35);">
+            ✅ ĐÃ NGHIÊN CỨU
+          </span>
+        `;
+      } else if (!isLevelMet) {
+        actionBtn = `
+          <span style="font-size:10px; font-weight:bold; color:#ff5577; background:rgba(255,85,119,0.12); padding:4px 8px; border-radius:4px; border:1px solid rgba(255,85,119,0.35);">
+            🔒 Cần Thị Trấn Cấp ${reqLvl}
+          </span>
+        `;
+      } else {
+        actionBtn = `
+          <button class="btn-primary" style="font-size:11px; padding:5px 10px; font-weight:bold; ${canAfford ? '' : 'opacity:0.6;'}" onclick="window.app.performResearch('${t.id}')">
+            🧪 Nghiên Cứu (💰${costStr})
+          </button>
+        `;
+      }
+
+      html += `
+        <div class="item-card ${isResearched ? 'can-craft' : ''}" style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border-color:${isResearched ? 'rgba(57,255,20,0.3)' : 'var(--border-color)'};">
+          <div class="item-info" style="flex:1; margin-right:10px;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span style="font-size:14px;">${bIcon}</span>
+              <span style="font-size:12px; font-weight:bold; color:${isResearched ? '#39ff14' : '#00e5ff'};">${t.name}</span>
+              <span style="font-size:9px; color:var(--text-muted); background:rgba(255,255,255,0.06); padding:1px 5px; border-radius:3px;">[${bName}]</span>
+            </div>
+            <div style="font-size:11px; color:#d0dbe5; margin-top:2px;">${t.desc}</div>
+            <div style="font-size:10px; color:var(--text-muted); margin-top:2px;">
+              Yêu cầu: <b style="color:${isLevelMet ? '#39ff14' : '#ffaa00'};">Thị Trấn Cấp ${reqLvl}</b> (Hiện có: Cấp ${townLvl}) | Chi phí: <b style="color:#ffd700;">💰${costStr} GOLD</b>
+            </div>
+          </div>
+          <div style="text-align:right; white-space:nowrap;">
+            ${actionBtn}
+          </div>
+        </div>
+      `;
+    });
+
+    list.innerHTML = html;
+  }
+
+  performResearch(techId) {
+    const tech = (CONFIG.RESEARCH_TECHS || []).find(t => t.id === techId);
+    if (!tech) return;
+
+    const townLvl = window.gameState.townLevel || 1;
+    if (townLvl < (tech.reqTownLvl || 1)) {
+      alert(`Thị trấn cần đạt Cấp ${tech.reqTownLvl} để nghiên cứu công nghệ này!`);
+      return;
+    }
+
+    if (window.gameState.gold < tech.costGold) {
+      alert(`Không đủ vàng để nghiên cứu (Cần 💰${CONFIG.formatNumber(tech.costGold)} GOLD)!`);
+      return;
+    }
+
+    // Deduct gold & mark researched
+    window.gameState.spendGold(tech.costGold);
+    if (!window.gameState.researched) window.gameState.researched = {};
+    window.gameState.researched[techId] = true;
+
+    // Recalculate town parameters if affected
+    if (window.gameState.recalculateMaxStorage) {
+      window.gameState.recalculateMaxStorage();
+    }
+    if (window.gameState.getGateMaxHp) {
+      window.gameState.maxGateHp = window.gameState.getGateMaxHp();
+    }
+
+    window.logTicker.add(`💡 [ĐỘT PHÁ CÔNG NGHỆ]: Đã nghiên cứu thành công [${tech.name}]! (${tech.desc})`, 'special');
+    if (window.soundFX && window.soundFX.playLevelUp) window.soundFX.playLevelUp();
+    if (window.showToast) {
+      window.showToast(`Nghiên cứu thành công [${tech.name}]!`, 'success', '💡 VIỆN NGHIÊN CỨU');
+    }
+
+    window.gameState.save();
+    this.populateResearchModal(this.currentResearchBranch || 'all');
   }
 }
 

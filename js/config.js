@@ -7,19 +7,23 @@ const CONFIG = {
   TICK_INTERVAL_MS: 500, // Simulation step
   SAVE_INTERVAL_MS: 5000,
 
-  // FORMAT SỐ RÚT GỌN (K, M, B) CHO LỰC CHIẾN VÀ TIỀN VÀNG
+  // FORMAT SỐ RÚT GỌN (K, M, B) CHO LỰC CHIẾN, TIỀN VÀNG, MÁU, V.V.
   formatNumber(num) {
-    const n = Number(num) || 0;
-    if (n >= 1000000000) {
-      return (n / 1000000000).toFixed(2).replace(/\.00$/, '') + 'B';
+    if (num === null || num === undefined || isNaN(num)) return "0";
+    const n = Number(num);
+    const abs = Math.abs(n);
+    const sign = n < 0 ? "-" : "";
+
+    if (abs >= 1000000000) {
+      return sign + (abs / 1000000000).toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1') + 'B';
     }
-    if (n >= 1000000) {
-      return (n / 1000000).toFixed(2).replace(/\.00$/, '') + 'M';
+    if (abs >= 1000000) {
+      return sign + (abs / 1000000).toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1') + 'M';
     }
-    if (n >= 10000) {
-      return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+    if (abs >= 1000) {
+      return sign + (abs / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
     }
-    return n.toLocaleString();
+    return sign + Math.round(abs).toString();
   },
 
   // FORMAT ĐƠN VỊ TIỀN VÀNG CHUẨN (GOLD)
@@ -280,6 +284,48 @@ const CONFIG = {
       { id: "amr_lvl_80", name: "Hư Không Thần Ma Giáp", icon: "🛡️", rarity: "legend", def: 410, hp: 3100, reqLvl: 80, craftFee: 29000, costGold: 128000, materials: { dragon_scale: 42, lava_ore: 70, spirit_dust: 55 } },
       { id: "amr_lvl_90", name: "Minh Vương Chiến Giáp", icon: "👑", rarity: "legend", def: 580, hp: 4400, reqLvl: 90, craftFee: 72000, costGold: 320000, materials: { dragon_scale: 70, spirit_dust: 80, lava_ore: 75 } },
       { id: "amr_lvl_100", name: "Thần Ma Bất Diệt Giáp (Tối Thượng)", icon: "🌟", rarity: "legend", def: 850, hp: 7000, reqLvl: 100, craftFee: 180000, costGold: 800000, materials: { dragon_scale: 120, lava_ore: 140, dark_cloth: 100 } }
+    ],
+
+    rings: [
+      { id: "ring_lvl_1", name: "Nhẫn Đồng Tập Sự", icon: "💍", rarity: "normal", atk: 6, crit: 3, reqLvl: 1, craftFee: 10, costGold: 35, materials: { slime_gel: 4 } },
+      { id: "ring_lvl_10", name: "Nhẫn Bạc Nanh Sói", icon: "💍", rarity: "rare", atk: 18, crit: 5, reqLvl: 10, craftFee: 30, costGold: 130, materials: { goblin_tooth: 6, wolf_pelt: 5 } },
+      { id: "ring_lvl_20", name: "Nhẫn Xương Hắc Nguyền", icon: "💍", rarity: "rare", atk: 38, crit: 7, reqLvl: 20, craftFee: 80, costGold: 360, materials: { cursed_bone: 10, wolf_pelt: 6 } },
+      { id: "ring_lvl_30", name: "Nhẫn Lam Ngọc U Tối", icon: "💍", rarity: "superior", atk: 70, crit: 9, reqLvl: 30, craftFee: 220, costGold: 1000, materials: { dark_cloth: 14, cursed_bone: 12 } },
+      { id: "ring_lvl_40", name: "Nhẫn Hỏa Ngọc Nham Thạch", icon: "💍", rarity: "superior", atk: 115, crit: 12, reqLvl: 40, craftFee: 600, costGold: 2700, materials: { lava_ore: 14, spirit_dust: 12 } },
+      { id: "ring_lvl_50", name: "Nhẫn Viêm Long Quỷ Vương", icon: "💍", rarity: "heroic", atk: 180, crit: 15, reqLvl: 50, craftFee: 1500, costGold: 7000, materials: { lava_ore: 22, spirit_dust: 18 } },
+      { id: "ring_lvl_60", name: "Nhẫn Long Hồn Bất Diệt", icon: "💍", rarity: "heroic", atk: 260, crit: 18, reqLvl: 60, craftFee: 3800, costGold: 17500, materials: { dragon_scale: 12, lava_ore: 25 } },
+      { id: "ring_lvl_70", name: "Nhẫn Tinh Vân Thần Tộc", icon: "💍", rarity: "legend", atk: 370, crit: 22, reqLvl: 70, craftFee: 9500, costGold: 44000, materials: { dragon_scale: 20, spirit_dust: 28 } },
+      { id: "ring_lvl_80", name: "Nhẫn Hư Không Hắc Ma", icon: "💍", rarity: "legend", atk: 520, crit: 26, reqLvl: 80, craftFee: 24000, costGold: 110000, materials: { dragon_scale: 32, lava_ore: 50 } },
+      { id: "ring_lvl_90", name: "Nhẫn Ma Tôn Thôn Phệ", icon: "👑", rarity: "legend", atk: 740, crit: 30, reqLvl: 90, craftFee: 60000, costGold: 280000, materials: { dragon_scale: 55, spirit_dust: 60 } },
+      { id: "ring_lvl_100", name: "Nhẫn Sáng Thế Vô Cực (Tối Thượng)", icon: "🌟", rarity: "legend", atk: 1100, crit: 35, reqLvl: 100, craftFee: 150000, costGold: 700000, materials: { dragon_scale: 90, lava_ore: 100, spirit_dust: 90 } }
+    ],
+
+    amulets: [
+      { id: "amr_amulet_lvl_1", name: "Dây Chuyền Da Thô", icon: "📿", rarity: "normal", def: 4, hp: 25, critDmg: 15, reqLvl: 1, craftFee: 10, costGold: 35, materials: { slime_gel: 4 } },
+      { id: "amr_amulet_lvl_10", name: "Vòng Cổ Nanh Ma", icon: "📿", rarity: "rare", def: 12, hp: 70, critDmg: 25, reqLvl: 10, craftFee: 30, costGold: 130, materials: { goblin_tooth: 6, slime_gel: 6 } },
+      { id: "amr_amulet_lvl_20", name: "Dây Chuyền Huyết Xương", icon: "📿", rarity: "rare", def: 24, hp: 150, critDmg: 38, reqLvl: 20, craftFee: 80, costGold: 360, materials: { cursed_bone: 10, wolf_pelt: 6 } },
+      { id: "amr_amulet_lvl_30", name: "Hộ Thân Phù Oán Linh", icon: "📿", rarity: "superior", def: 44, hp: 270, critDmg: 52, reqLvl: 30, craftFee: 220, costGold: 1000, materials: { dark_cloth: 14, cursed_bone: 12 } },
+      { id: "amr_amulet_lvl_40", name: "Dây Chuyền Trái Tim Titan", icon: "📿", rarity: "superior", def: 72, hp: 460, critDmg: 68, reqLvl: 40, craftFee: 600, costGold: 2700, materials: { lava_ore: 14, spirit_dust: 12 } },
+      { id: "amr_amulet_lvl_50", name: "Dây Chuyền Hỏa Ma Diệt Thế", icon: "📿", rarity: "heroic", def: 110, hp: 730, critDmg: 85, reqLvl: 50, craftFee: 1500, costGold: 7000, materials: { lava_ore: 22, spirit_dust: 18 } },
+      { id: "amr_amulet_lvl_60", name: "Dây Chuyền Long Lân Hộ Thể", icon: "📿", rarity: "heroic", def: 165, hp: 1150, critDmg: 105, reqLvl: 60, craftFee: 3800, costGold: 17500, materials: { dragon_scale: 12, lava_ore: 25 } },
+      { id: "amr_amulet_lvl_70", name: "Dây Chuyền Tinh Thần Vĩnh Cửu", icon: "📿", rarity: "legend", def: 230, hp: 1700, critDmg: 128, reqLvl: 70, craftFee: 9500, costGold: 44000, materials: { dragon_scale: 20, spirit_dust: 28 } },
+      { id: "amr_amulet_lvl_80", name: "Vòng Cổ Hư Không Thánh Thần", icon: "📿", rarity: "legend", def: 330, hp: 2500, critDmg: 155, reqLvl: 80, craftFee: 24000, costGold: 110000, materials: { dragon_scale: 32, lava_ore: 50 } },
+      { id: "amr_amulet_lvl_90", name: "Dây Chuyền Ma Hoàng Thần Hộ", icon: "👑", rarity: "legend", def: 460, hp: 3500, critDmg: 185, reqLvl: 90, craftFee: 60000, costGold: 280000, materials: { dragon_scale: 55, spirit_dust: 60 } },
+      { id: "amr_amulet_lvl_100", name: "Dây Chuyền Bất Tử Thần Ma (Tối Thượng)", icon: "🌟", rarity: "legend", def: 680, hp: 5500, critDmg: 230, reqLvl: 100, craftFee: 150000, costGold: 700000, materials: { dragon_scale: 90, lava_ore: 100, dark_cloth: 80 } }
+    ],
+
+    talismans: [
+      { id: "tal_lvl_1", name: "Ngọc Bội Sơ Khai", icon: "🔮", rarity: "normal", atk: 4, critRate: 6, reqLvl: 1, craftFee: 10, costGold: 35, materials: { slime_gel: 4 } },
+      { id: "tal_lvl_10", name: "Linh Phù Ranh Ma", icon: "🔮", rarity: "rare", atk: 12, critRate: 9, reqLvl: 10, craftFee: 30, costGold: 130, materials: { goblin_tooth: 6, slime_gel: 6 } },
+      { id: "tal_lvl_20", name: "Huyết Ngọc Âm Hồn", icon: "🔮", rarity: "rare", atk: 26, critRate: 12, reqLvl: 20, craftFee: 80, costGold: 360, materials: { cursed_bone: 10, wolf_pelt: 6 } },
+      { id: "tal_lvl_30", name: "Pháp Bảo Dạ Xoa", icon: "🔮", rarity: "superior", atk: 48, critRate: 16, reqLvl: 30, craftFee: 220, costGold: 1000, materials: { dark_cloth: 14, cursed_bone: 12 } },
+      { id: "tal_lvl_40", name: "Hỏa Linh Thần Châu", icon: "🔮", rarity: "superior", atk: 80, critRate: 20, reqLvl: 40, craftFee: 600, costGold: 2700, materials: { lava_ore: 14, spirit_dust: 12 } },
+      { id: "tal_lvl_50", name: "Pháp Bảo Cửu U Ma Đồng", icon: "🔮", rarity: "heroic", atk: 125, critRate: 24, reqLvl: 50, craftFee: 1500, costGold: 7000, materials: { lava_ore: 22, spirit_dust: 18 } },
+      { id: "tal_lvl_60", name: "Long Châu Nghịch Lân", icon: "🔮", rarity: "heroic", atk: 185, critRate: 28, reqLvl: 60, craftFee: 3800, costGold: 17500, materials: { dragon_scale: 12, lava_ore: 25 } },
+      { id: "tal_lvl_70", name: "Tinh Vân Thần Hộ Phù", icon: "🔮", rarity: "legend", atk: 260, critRate: 33, reqLvl: 70, craftFee: 9500, costGold: 44000, materials: { dragon_scale: 20, spirit_dust: 28 } },
+      { id: "tal_lvl_80", name: "Bảo Ngọc Thái Sơ Vô Cực", icon: "🔮", rarity: "legend", atk: 370, critRate: 38, reqLvl: 80, craftFee: 24000, costGold: 110000, materials: { dragon_scale: 32, lava_ore: 50 } },
+      { id: "tal_lvl_90", name: "Hỗn Độn Thôn Thiên Bảo Châu", icon: "👑", rarity: "legend", atk: 520, critRate: 44, reqLvl: 90, craftFee: 60000, costGold: 280000, materials: { dragon_scale: 55, spirit_dust: 60 } },
+      { id: "tal_lvl_100", name: "Sáng Thế Hồng Mông Chí Bảo (Tối Thượng)", icon: "🌟", rarity: "legend", atk: 780, critRate: 50, reqLvl: 100, craftFee: 150000, costGold: 700000, materials: { dragon_scale: 90, lava_ore: 100, spirit_dust: 90 } }
     ]
   },
 
@@ -432,38 +478,45 @@ const CONFIG = {
     { id: "ach_gold_500k", title: "Tỷ Phú Đế Chế", desc: "Ngân Khố thị trấn tích lũy đạt 500,000 Vàng", target: 500000, type: "goldEarned", rewardGems: 100 },
     { id: "ach_gold_5m", title: "Vương Khố Kim Ngân Vô Tận", desc: "Ngân Khố thị trấn tích lũy đạt 5,000,000 Vàng", target: 5000000, type: "goldEarned", rewardGems: 350 },
     { id: "ach_tech_5", title: "Nhà Nghiên Cứu", desc: "Nghiên cứu thành công 5 công nghệ", target: 5, type: "techCount", rewardGems: 25 },
-    { id: "ach_tech_15", title: "Viện Hàn Lâm Thần Học", desc: "Nghiên cứu thành công 15 công nghệ", target: 15, type: "techCount", rewardGems: 120 }
+    { id: "ach_tech_15", title: "Viện Hàn Lâm Thần Học", desc: "Nghiên cứu thành công 15 công nghệ", target: 15, type: "techCount", rewardGems: 120 },
+    { id: "ach_tech_25", title: "Đỉnh Cao Tri Thức Sáng Thế", desc: "Nghiên cứu thành công 25 công nghệ", target: 25, type: "techCount", rewardGems: 300 }
   ],
 
   // COMPREHENSIVE 4-BRANCH RESEARCH TECH TREE (5 BẬC CÔNG NGHỆ CHUYÊN SÂU TỪ LEVEL 1 ĐẾN LEVEL 10)
   RESEARCH_TECHS: [
-    // NHÁNH 1: KINH TẾ & THỊ TRẤN
+    // NHÁNH 1: KINH TẾ & THỊ TRẤN (CHI PHÍ LŨY TIẾN HÀM MŨ LV.1 -> 50)
     { id: "tech_tax_master", branch: "economy", name: "Bậc Thầy Thuế Vụ", desc: "Tăng +15% vàng thu được từ mọi dịch vụ Quán Trọ, Quán Ăn, Y Tế", costGold: 350, reqTownLvl: 1 },
-    { id: "tech_storage_expand", branch: "economy", name: "Mở Rộng Hầm Chứa I", desc: "Tăng vĩnh viễn +60 Sức chứa Kho Đồ Thị Trấn", costGold: 750, reqTownLvl: 2 },
-    { id: "tech_gold_merchant", branch: "economy", name: "Hiệp Hội Thương Gia", desc: "Thợ săn kiếm thêm +25% Vàng khi hạ gục quái vật", costGold: 2200, reqTownLvl: 3 },
-    { id: "tech_storage_expand_2", branch: "economy", name: "Mở Rộng Hầm Chứa II", desc: "Tăng vĩnh viễn thêm +120 Sức chứa Kho Đồ", costGold: 6000, reqTownLvl: 5 },
-    { id: "tech_imperial_treasury", branch: "economy", name: "Ngân Khố Đế Vương", desc: "Tăng +35% vàng từ mọi nguồn thu trong toàn bộ Thị Trấn", costGold: 35000, reqTownLvl: 8 },
+    { id: "tech_storage_expand", branch: "economy", name: "Mở Rộng Hầm Chứa I", desc: "Tăng vĩnh viễn +60 Sức chứa Kho Đồ Thị Trấn", costGold: 1200, reqTownLvl: 3 },
+    { id: "tech_gold_merchant", branch: "economy", name: "Hiệp Hội Thương Gia", desc: "Thợ săn kiếm thêm +25% Vàng khi hạ gục quái vật", costGold: 15000, reqTownLvl: 8 },
+    { id: "tech_fortified_bastion", branch: "economy", name: "Tường Thành Kiên Cố", desc: "Tăng vĩnh viễn +50% Máu Cổng Thành và giảm 25% sát thương quái trong Đêm Trăng Máu", costGold: 200000, reqTownLvl: 15 },
+    { id: "tech_storage_expand_2", branch: "economy", name: "Mở Rộng Hầm Chứa II", desc: "Tăng vĩnh viễn thêm +120 Sức chứa Kho Đồ", costGold: 2400000, reqTownLvl: 24 },
+    { id: "tech_ballista_towers", branch: "economy", name: "Tháp Nỏ Phòng Thủ", desc: "Tự động bắn tỉa gây +80 Sát thương diện rộng lên quái vật mỗi giây trong Đêm Trăng Máu", costGold: 32000000, reqTownLvl: 35 },
+    { id: "tech_imperial_treasury", branch: "economy", name: "Ngân Khố Đế Vương", desc: "Tăng +35% vàng từ mọi nguồn thu trong toàn bộ Thị Trấn", costGold: 290000000, reqTownLvl: 45 },
 
-    // NHÁNH 2: LUYỆN KIM & QUÂN SỰ
-    { id: "tech_master_forge", branch: "military", name: "Luyện Kim Siêu Bền", desc: "Giảm 25% nguyên liệu khi rèn vũ khí và áo giáp", costGold: 450, reqTownLvl: 1 },
-    { id: "tech_sharp_blade", branch: "military", name: "Thuật Mài Kiếm Bí Truyền", desc: "Tăng vĩnh viễn +15% Sát Thương (ATK) cho toàn bộ thợ săn", costGold: 1200, reqTownLvl: 2 },
-    { id: "tech_enchant_blessing", branch: "military", name: "Phúc Lành Lò Rèn", desc: "Tăng +20% tỷ lệ cường hóa thành công từ +1 đến +30", costGold: 3500, reqTownLvl: 4 },
-    { id: "tech_divine_smith", branch: "military", name: "Kỹ Nghệ Rèn Thần Thoại", desc: "Tăng thêm +25% Sát Thương và +25% Phòng ngự cho toàn bộ trang bị", costGold: 12000, reqTownLvl: 6 },
-    { id: "tech_godly_armory", branch: "military", name: "Vũ Khí Thánh Sáng Thế", desc: "Kích hoạt hiệu ứng x2 Bạo Kích (Critical) cho toàn bộ Thợ Săn", costGold: 50000, reqTownLvl: 9 },
+    // NHÁNH 2: LUYỆN KIM & QUÂN SỰ (CHI PHÍ LŨY TIẾN HÀM MŨ LV.1 -> 50)
+    { id: "tech_master_forge", branch: "military", name: "Luyện Kim Siêu Bền", desc: "Giảm 25% nguyên liệu khi rèn vũ khí và áo giáp", costGold: 600, reqTownLvl: 2 },
+    { id: "tech_sharp_blade", branch: "military", name: "Thuật Mài Kiếm Bí Truyền", desc: "Tăng vĩnh viễn +15% Sát Thương (ATK) cho toàn bộ thợ săn", costGold: 6000, reqTownLvl: 6 },
+    { id: "tech_enchant_blessing", branch: "military", name: "Phúc Lành Lò Rèn", desc: "Tăng +20% tỷ lệ cường hóa thành công từ +1 đến +30", costGold: 80000, reqTownLvl: 12 },
+    { id: "tech_crit_mastery", branch: "military", name: "Khai Mở Bạo Kích Thượng Thừa", desc: "Tăng vĩnh viễn +10% Tỉ Lệ Chí Mạng và +35% Sát Thương Bạo Kích cho toàn thể Thợ Săn", costGold: 850000, reqTownLvl: 20 },
+    { id: "tech_divine_smith", branch: "military", name: "Kỹ Nghệ Rèn Thần Thoại", desc: "Tăng thêm +25% Sát Thương và +25% Phòng ngự cho toàn bộ trang bị", costGold: 10500000, reqTownLvl: 30 },
+    { id: "tech_talisman_craft", branch: "military", name: "Thuật Đúc Pháp Bảo Cổ", desc: "Tăng +20% Sát Thương & Tỉ lệ Bạo từ toàn bộ Pháp Bảo & Dây Chuyền", costGold: 95000000, reqTownLvl: 40 },
+    { id: "tech_godly_armory", branch: "military", name: "Vũ Khí Thánh Sáng Thế", desc: "Kích hoạt hiệu ứng x2 Bạo Kích (Critical) cho toàn bộ Thợ Săn", costGold: 560000000, reqTownLvl: 48 },
 
-    // NHÁNH 3: Y THUẬT & SINH TỒN
-    { id: "tech_feather_bed", branch: "survival", name: "Đệm Ngủ Lông Vũ", desc: "Giảm 50% thời gian ngủ hồi phục thể lực tại Quán Trọ", costGold: 300, reqTownLvl: 1 },
-    { id: "tech_gourmet_chef", branch: "survival", name: "Gia Vị Hoàng Cung", desc: "Món ăn hồi phục thêm +30% Đói và buff +15 Sát thương", costGold: 900, reqTownLvl: 2 },
-    { id: "tech_vitality_boost", branch: "survival", name: "Huyết Thanh Sinh Lực", desc: "Tăng vĩnh viễn +25% Máu (HP) tối đa cho toàn bộ thợ săn", costGold: 2800, reqTownLvl: 3 },
-    { id: "tech_immortal_medicine", branch: "survival", name: "Bí Truyền Trường Sinh", desc: "Tăng +50% hiệu quả hồi máu từ toàn bộ Tiên Dược & Bác Sĩ", costGold: 9500, reqTownLvl: 5 },
-    { id: "tech_phoenix_rebirth", branch: "survival", name: "Huyết Mạch Phượng Hoàng", desc: "Thợ săn tự động hồi sinh 50% Máu một lần mỗi chuyến đi săn", costGold: 45000, reqTownLvl: 8 },
+    // NHÁNH 3: Y THUẬT & SINH TỒN (CHI PHÍ LŨY TIẾN HÀM MŨ LV.1 -> 50)
+    { id: "tech_feather_bed", branch: "survival", name: "Đệm Ngủ Lông Vũ", desc: "Giảm 50% thời gian ngủ hồi phục thể lực tại Quán Trọ", costGold: 400, reqTownLvl: 1 },
+    { id: "tech_gourmet_chef", branch: "survival", name: "Gia Vị Hoàng Cung", desc: "Món ăn hồi phục thêm +30% Đói và buff +15 Sát thương", costGold: 3500, reqTownLvl: 5 },
+    { id: "tech_vitality_boost", branch: "survival", name: "Huyết Thanh Sinh Lực", desc: "Tăng vĩnh viễn +25% Máu (HP) tối đa cho toàn bộ thợ săn", costGold: 270000, reqTownLvl: 16 },
+    { id: "tech_immortal_medicine", branch: "survival", name: "Bí Truyền Trường Sinh", desc: "Tăng +50% hiệu quả hồi máu từ toàn bộ Tiên Dược & Bác Sĩ", costGold: 6500000, reqTownLvl: 28 },
+    { id: "tech_phoenix_rebirth", branch: "survival", name: "Huyết Mạch Phượng Hoàng", desc: "Thợ săn tự động hồi sinh 50% Máu một lần mỗi chuyến đi săn", costGold: 230000000, reqTownLvl: 44 },
 
-    // NHÁNH 4: THÁM HIỂM & SĂN BẮT
-    { id: "tech_eagle_eye", branch: "hunting", name: "Mắt Chim Đại Bàng", desc: "Tăng +35% Tỷ lệ rơi chiến lợi phẩm hiếm từ quái vật", costGold: 800, reqTownLvl: 2 },
-    { id: "tech_speed_boots", branch: "hunting", name: "Thuật Phong Hành", desc: "Tăng +30% Tốc độ di chuyển và tốc độ đánh của thợ săn", costGold: 2400, reqTownLvl: 3 },
-    { id: "tech_dragon_hunter", branch: "hunting", name: "Kỹ Năng Đồ Long", desc: "Tăng +40% Sát thương của thợ săn khi chiến đấu với Quái Vật Vùng Cao (Lv.60+)", costGold: 8000, reqTownLvl: 5 },
-    { id: "tech_void_tracker", branch: "hunting", name: "La Bàn Hư Không", desc: "Nhận thêm +50% EXP kinh nghiệm cho toàn bộ thợ săn khi diệt quái", costGold: 22000, reqTownLvl: 7 },
-    { id: "tech_demon_slayer_aura", branch: "hunting", name: "Hào Quang Diệt Quỷ Tối Thượng", desc: "Toàn bộ Thợ Săn gây thêm +50% Sát thương lên Boss Chúa Quỷ", costGold: 60000, reqTownLvl: 9 }
+    // NHÁNH 4: THÁM HIỂM & SĂN BẮT (CHI PHÍ LŨY TIẾN HÀM MŨ LV.1 -> 50)
+    { id: "tech_eagle_eye", branch: "hunting", name: "Mắt Chim Đại Bàng", desc: "Tăng +35% Tỷ lệ rơi chiến lợi phẩm hiếm từ quái vật", costGold: 2000, reqTownLvl: 4 },
+    { id: "tech_speed_boots", branch: "hunting", name: "Thuật Phong Hành", desc: "Tăng +30% Tốc độ di chuyển và tốc độ đánh của thợ săn", costGold: 35000, reqTownLvl: 10 },
+    { id: "tech_dragon_hunter", branch: "hunting", name: "Kỹ Năng Đồ Long", desc: "Tăng +40% Sát thương của thợ săn khi chiến đấu với Quái Vật Vùng Cao (Lv.60+)", costGold: 480000, reqTownLvl: 18 },
+    { id: "tech_dungeon_dominance", branch: "hunting", name: "Thần Uy Trảm Tướng Hầm Ngục", desc: "Đội hình Hầm Ngục được tăng +25% Sát Thương và +15% Kháng Sát Thương khi đấu Boss", costGold: 4000000, reqTownLvl: 26 },
+    { id: "tech_void_tracker", branch: "hunting", name: "La Bàn Hư Không", desc: "Nhận thêm +50% EXP kinh nghiệm cho toàn bộ thợ săn khi diệt quái", costGold: 40000000, reqTownLvl: 36 },
+    { id: "tech_relic_harvest", branch: "hunting", name: "Khai Thác Tinh Thạch Cổ", desc: "Tăng +50% Tỉ lệ rơi nguyên liệu Đột Phá Cảnh Giới từ Boss Hầm Ngục", costGold: 150000000, reqTownLvl: 42 },
+    { id: "tech_demon_slayer_aura", branch: "hunting", name: "Hào Quang Diệt Quỷ Tối Thượng", desc: "Toàn bộ Thợ Săn gây thêm +50% Sát thương lên Boss Chúa Quỷ", costGold: 850000000, reqTownLvl: 50 }
   ],
 
   // BREAKTHROUGH REALM REQUIREMENTS (Yêu cầu Đột Phá Cảnh Giới khi Thợ Săn đạt Lv.100 - CHI PHÍ LŨY TIẾN HÀM SỐ MŨ)
@@ -758,20 +811,44 @@ const CONFIG = {
     }
   ],
 
-  getDungeonFloorData(floorNum) {
-    const f = Number(floorNum) || 1;
-    const explicit = this.DUNGEON_FLOORS.find(df => df.floor === f);
-    if (explicit) return explicit;
+  getFloorReqPower(floorNum) {
+    const f = Math.max(1, Math.min(30, Number(floorNum) || 1));
+    if (f === 1) return 600;
+    if (f === 2) return 1500;
+    if (f === 3) return 3200;
+    if (f === 4) return 6500;
+    if (f === 5) return 12000;
+    // Smooth exponential progression for Floors 6-30
+    return Math.floor(12000 * Math.pow(1.365, f - 5));
+  },
 
-    // Procedural scaling for intermediate floors
+  getDungeonFloorData(floorNum) {
+    const f = Math.max(1, Math.min(30, Number(floorNum) || 1));
+    const explicit = this.DUNGEON_FLOORS.find(df => df.floor === f);
+
+    // Dynamic strictly-balanced stats matching reqPower
+    const reqPower = this.getFloorReqPower(f);
+    const hp = Math.floor(reqPower * (f <= 5 ? 0.70 : (f <= 15 ? 0.75 : 0.80)));
+    const atk = Math.max(18, Math.floor(Math.pow(reqPower, 0.58) * 4.2));
+    const def = Math.max(4, Math.floor(Math.pow(reqPower, 0.52) * 2.6));
+    const enrageSec = Math.min(60, 45 + Math.floor(f * 0.5));
+
+    if (explicit) {
+      return {
+        ...explicit,
+        reqPower: reqPower,
+        bossHp: hp,
+        bossAtk: atk,
+        bossDef: def,
+        enrageSec: enrageSec
+      };
+    }
+
+    // Procedural landmark lookup for intermediate floors
     const prev = this.DUNGEON_FLOORS.reduce((acc, curr) => (curr.floor <= f && curr.floor > acc.floor ? curr : acc), this.DUNGEON_FLOORS[0]);
     const diff = f;
-    const hp = Math.floor(1800 * Math.pow(1.23, f - 1));
-    const atk = Math.floor(35 * Math.pow(1.15, f - 1));
-    const def = Math.floor(12 + Math.pow(f, 1.6) * 1.8);
-    const reqPower = Math.floor(3000 * Math.pow(1.26, f - 1));
-    
-    // Choose appropriate breakthrough material drop
+
+    // Materials drop
     let matKey = "mat_breakthrough_stone";
     let matCount = Math.min(10, 1 + Math.floor(f / 3));
     let extraMat = null;
@@ -792,12 +869,13 @@ const CONFIG = {
 
     const firstMats = { [matKey]: matCount };
     if (extraMat) firstMats[extraMat] = Math.max(1, Math.floor(matCount / 2));
-
     const farmMats = { [matKey]: Math.max(1, Math.floor(matCount / 3)) };
+
+    const cleanName = prev.name.includes(':') ? prev.name.split(':')[1].trim() : 'Vực Thẳm Thử Thách';
 
     return {
       floor: f,
-      name: `Tầng ${f}: ${prev.name.split(':')[1] || 'Vực Thẳm Thử Thách'} (Độ Khó Cấp ${f})`,
+      name: `Tầng ${f}: ${cleanName} (Cấp ${f})`,
       icon: prev.icon || "🗝️",
       bossName: `Thủ Lĩnh Hầm Ngục Tầng ${f}`,
       bossGlyph: prev.bossGlyph || "⚔️[☠️_☠️]⚔️",
@@ -806,7 +884,7 @@ const CONFIG = {
       bossAtk: atk,
       bossDef: def,
       reqPower: reqPower,
-      enrageSec: Math.min(60, 45 + Math.floor(f * 0.5)),
+      enrageSec: enrageSec,
       firstClear: { gold: f * 1000, gems: Math.min(150, 5 + f * 4), materials: firstMats },
       farmReward: { gold: f * 200, materials: farmMats },
       desc: `Độ khó Cấp ${diff}. Thử thách hiểm nguy tầng sâu Hầm Ngục!`

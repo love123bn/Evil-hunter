@@ -18,10 +18,13 @@ class GameState {
     this.dayCount = 1;
     this.isDay = true;
     
-    // Blood Moon Threat Cycle
+    // Blood Moon Threat Cycle & Town Gate Defense
     this.threatMax = 300; // 5 minutes cycle
     this.threatTimer = 300;
     this.isBloodMoon = false;
+    this.gateHp = 1000;
+    this.maxGateHp = 1000;
+    this.bloodMoonBreached = false;
     
     // Active Zone & Difficulty
     this.currentZoneId = "zone_1";
@@ -86,8 +89,17 @@ class GameState {
     };
 
     this.lastSaved = Date.now();
-    this.soundOn = true;
+    this.soundOn = false;
     this.crtOn = true;
+  }
+
+  // Calculate maximum Town Gate HP based on Town Level & Research
+  getGateMaxHp() {
+    const base = 800 + ((this.townLevel || 1) * 350);
+    let multiplier = 1.0;
+    if (this.researched?.tech_divine_smith) multiplier *= 1.3;
+    if (this.researched?.tech_fortified_bastion) multiplier *= 1.5;
+    return Math.floor(base * multiplier);
   }
 
   // Calculate current storage count

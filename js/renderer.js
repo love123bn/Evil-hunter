@@ -35,7 +35,7 @@ class Renderer {
         const cls = CONFIG.HUNTER_CLASSES[clsKey] || CONFIG.HUNTER_CLASSES.BERSERKER;
         const rank = CONFIG.HUNTER_RANKS[rankKey] || CONFIG.HUNTER_RANKS.NORMAL;
         
-        const maxHp = Number(h.maxHp) || 100;
+        const maxHp = h.getTotalMaxHp ? h.getTotalMaxHp() : (Number(h.maxHp) || 100);
         const hp = h.hp !== undefined ? Number(h.hp) : maxHp;
         const hpPct = Math.max(0, Math.min(100, Math.round((hp / maxHp) * 100)));
         const hungerPct = Math.max(0, Math.min(100, Math.round(Number(h.hunger) || 100)));
@@ -74,7 +74,7 @@ class Renderer {
               <div class="hlc-gauge" title="Máu">
                 <span class="g-lbl">❤️ HP</span>
                 <div class="g-track"><div class="g-fill hp" style="width:${hpPct}%"></div></div>
-                <span class="g-val">${Math.round(hp)}/${maxHp}</span>
+                <span class="g-val">${CONFIG.formatNumber(Math.round(hp))}/${CONFIG.formatNumber(maxHp)}</span>
               </div>
               <div class="hlc-gauge" title="Độ no bụng">
                 <span class="g-lbl">🍖 Đói</span>
@@ -93,8 +93,10 @@ class Renderer {
               <div class="hlc-activity">
                 💬 <i>${activityText}</i>
               </div>
-              <div class="hlc-inventory">
-                <span>💰 ${h.gold || 0}g</span>
+              <div class="hlc-inventory" style="display:flex; gap:6px; font-size:10px; flex-wrap:wrap;">
+                <span style="color:#ffaa00; font-weight:bold;">⚔️ ${CONFIG.formatNumber(h.getTotalAtk ? h.getTotalAtk() : h.atk)} ATK</span>
+                <span style="color:#00e5ff; font-weight:bold;">🛡️ ${CONFIG.formatNumber(h.getTotalDef ? h.getTotalDef() : h.def)} DEF</span>
+                <span style="color:#ffd700; font-weight:bold;">💰 ${CONFIG.formatNumber(h.gold || 0)}</span>
                 <span>🎒 ${(h.bag || []).length}/4</span>
               </div>
             </div>
@@ -118,16 +120,16 @@ class Renderer {
   updateHeader() {
     const state = window.gameState;
     document.getElementById('txt-town-name').textContent = `Thị Trấn Cấp ${state.townLevel}`;
-    document.getElementById('val-gold').textContent = state.gold.toLocaleString();
-    document.getElementById('val-gems').textContent = state.gems;
+    document.getElementById('val-gold').textContent = CONFIG.formatNumber(state.gold);
+    document.getElementById('val-gems').textContent = CONFIG.formatNumber(state.gems);
     document.getElementById('val-pop').textContent = `${state.hunters.length}/${state.maxHunters}`;
     document.getElementById('val-storage').textContent = `${state.getStorageCount()}/${state.maxStorage}`;
 
     const totalPower = (state.hunters || []).reduce((s, h) => s + (h.getCombatPower ? h.getCombatPower() : 0), 0);
     const pEl = document.getElementById('val-power');
     if (pEl) {
-      pEl.textContent = CONFIG.formatNumber ? CONFIG.formatNumber(totalPower) : totalPower.toLocaleString();
-      if (pEl.parentElement) pEl.parentElement.title = `Tổng Lực Chiến Toàn Thị Trấn: ${totalPower.toLocaleString()} CP`;
+      pEl.textContent = CONFIG.formatNumber(totalPower);
+      if (pEl.parentElement) pEl.parentElement.title = `Tổng Lực Chiến Toàn Thị Trấn: ${CONFIG.formatNumber(totalPower)} CP`;
     }
 
     // Update Building Grid Badges & Progress Bars
@@ -186,13 +188,46 @@ class Renderer {
       badgeDungeon.textContent = `Tầng ${nextF}`;
     }
 
-    // Threat progress
-    const pct = Math.max(0, Math.min(100, (1 - state.threatTimer / state.threatMax) * 100));
-    document.getElementById('threat-progress-fill').style.width = `${pct}%`;
-    const mins = Math.floor(state.threatTimer / 60);
-    const secs = Math.floor(state.threatTimer % 60);
-    document.getElementById('threat-timer-text').textContent = 
-      state.isBloodMoon ? "XÂM LĂNG!" : `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    // Threat & Blood Moon Gate Defense progress
+    const lblThreat = document.getElementById('threat-label-text');
+    const fillThreat = document.getElementById('threat-progress-fill');
+    const txtThreat = document.getElementById('threat-timer-text');
+
+    if (!state.isBloodMoon) {
+      const pct = Math.max(0, Math.min(100, (1 - state.threatTimer / state.threatMax) * 100));
+      if (fillThreat) {
+        fillThreat.style.width = `${pct}%`;
+        fillThreat.style.background = 'linear-gradient(90deg, #ff3366, #bd00ff)';
+      }
+      const mins = Math.floor(state.threatTimer / 60);
+      const secs = Math.floor(state.threatTimer % 60);
+      if (lblThreat) {
+        lblThreat.textContent = "🌙 Trăng Máu:";
+        lblThreat.style.color = "#ff88aa";
+      }
+      if (txtThreat) {
+        txtThreat.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      }
+    } else {
+      // ACTIVE SIEGE: Display Live Gate HP
+      const maxGate = state.maxGateHp || 1000;
+      const curGate = Math.max(0, state.gateHp !== undefined ? state.gateHp : maxGate);
+      const gatePct = Math.max(0, Math.min(100, Math.round((curGate / maxGate) * 100)));
+
+      if (fillThreat) {
+        fillThreat.style.width = `${gatePct}%`;
+        fillThreat.style.background = gatePct < 30 ? 'linear-gradient(90deg, #ff0055, #ff3366)' : (gatePct < 60 ? 'linear-gradient(90deg, #ffaa00, #ffd700)' : 'linear-gradient(90deg, #39ff14, #00e5ff)');
+      }
+      if (lblThreat) {
+        lblThreat.textContent = "🛡️ CỔNG THÀNH:";
+        lblThreat.style.color = gatePct < 30 ? "#ff0055" : (gatePct < 60 ? "#ffaa00" : "#39ff14");
+      }
+      if (txtThreat) {
+        const curGateStr = CONFIG.formatNumber ? CONFIG.formatNumber(Math.round(curGate)) : Math.round(curGate);
+        const maxGateStr = CONFIG.formatNumber ? CONFIG.formatNumber(maxGate) : maxGate;
+        txtThreat.innerHTML = `<span style="color:#ff5577; font-weight:bold;">⏱️ ${Math.ceil(state.threatTimer)}s</span> | 🛡️ <b>${curGateStr}/${maxGateStr} (${gatePct}%)</b>`;
+      }
+    }
 
     // Day/Night text
     const hrs = Math.floor((state.gameTimeSeconds / 3600) % 24);
