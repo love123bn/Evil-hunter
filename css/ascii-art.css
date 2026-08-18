@@ -1,0 +1,87 @@
+/* ==========================================================
+   TOWN OF HUNTERS - ASCII ART & SPRITE STYLING
+   ========================================================== */
+
+/* ASCII Character Glyphs & Sprites */
+.ascii-hunter {
+  color: var(--accent-cyan);
+  font-weight: bold;
+}
+
+.ascii-monster {
+  color: var(--accent-red);
+  font-weight: bold;
+}
+
+.ascii-building {
+  color: var(--accent-gold);
+}
+
+.ascii-path {
+  color: #2c4233;
+}
+
+.ascii-tree {
+  color: #1f6b2e;
+}
+
+.ascii-wall {
+  color: #556677;
+}
+
+/* Floating combat text on ASCII canvas */
+.combat-float-fx {
+  position: absolute;
+  color: #ff3366;
+  font-weight: bold;
+  font-family: var(--font-pixel);
+  font-size: 16px;
+  animation: float-up-fade 0.8s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes float-up-fade {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-12px) scale(1.2);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-24px) scale(0.8);
+    opacity: 0;
+  }
+}
+
+/* Gacha Banner Display */
+.ascii-gacha {
+  font-family: var(--font-pixel), monospace;
+  font-size: 14px;
+  line-height: 1.1;
+  color: var(--accent-purple);
+  text-shadow: 0 0 10px rgba(189, 0, 255, 0.5);
+  margin: 0 auto;
+  text-align: center;
+}
+
+/* ASCII Box Drawing helpers */
+.ascii-box {
+  border: 1px dashed var(--border-color);
+  padding: 6px;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+/* Blood moon theme toggle */
+body.blood-moon-active {
+  --bg-primary: #120508;
+  --bg-secondary: #210a10;
+  --border-color: #591624;
+  --accent-green: #ff3366;
+}
+
+body.blood-moon-active #ascii-viewport-section {
+  border-color: #ff0033;
+  box-shadow: inset 0 0 20px rgba(255, 0, 51, 0.3);
+}
