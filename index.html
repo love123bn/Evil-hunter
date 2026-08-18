@@ -58,9 +58,9 @@
         </div>
       </div>
 
-      <!-- Threat / Blood Moon Bar -->
+      <!-- Threat / Blood Moon Bar & Gate Defense -->
       <div class="header-row threat-bar-wrap">
-        <span class="threat-label">Trăng Máu:</span>
+        <span class="threat-label" id="threat-label-text">🌙 Trăng Máu:</span>
         <div class="threat-progress-track">
           <div id="threat-progress-fill" style="width: 15%;"></div>
         </div>
@@ -185,11 +185,13 @@
         <button class="btn-close-modal">✖</button>
       </div>
       <div class="modal-body">
-        <p class="modal-desc">Chế tạo vũ khí & áo giáp từ nguyên liệu. Thợ săn sẽ ghé mua khi có đủ tiền vàng!</p>
+        <p class="modal-desc">Chế tạo vũ khí, áo giáp, nhẫn, dây chuyền & pháp bảo từ nguyên liệu quái vật. Thợ săn sẽ tự ghé sắm khi tích lũy đủ vàng!</p>
         <div class="tabs-sub">
           <button class="sub-tab active" data-forge-cat="weapons">🗡️ Vũ Khí</button>
           <button class="sub-tab" data-forge-cat="armors">🦺 Áo Giáp</button>
-          <button class="sub-tab" data-forge-cat="enchant">✨ Cường Hóa (+1 ➔ +30)</button>
+          <button class="sub-tab" data-forge-cat="rings">💍 Nhẫn Cổ Ngữ</button>
+          <button class="sub-tab" data-forge-cat="amulets">📿 Dây Chuyền</button>
+          <button class="sub-tab" data-forge-cat="talismans">🔮 Pháp Bảo</button>
         </div>
         <div id="forge-craft-list" class="item-grid-list">
           <!-- Populated by JS -->
@@ -297,41 +299,29 @@
           <div class="altar-card altar-special" style="width:100%;">
             <div class="altar-icon">💎</div>
             <div class="altar-title">TRIỆU HỒI ANH HÙNG (NGỌC THẦN BÍ)</div>
-            <div class="altar-rates-badge special-badge">🟣 Ưu Tú ➔ 🟡 Anh Hùng ➔ 🔴 Huyền Thoại</div>
+            <div class="altar-rates-badge special-badge">⚪ Thường ➔ 🔵 Hiếm ➔ 🟣 Ưu Tú ➔ 🟡 Anh Hùng ➔ 🔴 Huyền Thoại</div>
             <div class="altar-glow-ring special-ring"></div>
           </div>
         </div>
 
-        <!-- Pity Progress Bars -->
-        <div class="pity-status-strip">
-          <div class="pity-box">
-            <div class="pity-label">
-              <span>Bảo hiểm Huyền Thoại (Đỏ S+):</span>
-              <b id="pity-special-txt" style="color:var(--accent-red);">0/30 Lượt</b>
-            </div>
-            <div class="bar-track" style="height:6px;">
-              <div id="pity-special-bar" class="bar-fill" style="width:0%; background:linear-gradient(90deg, #bd00ff, #ff3366);"></div>
-            </div>
-          </div>
-        </div>
-
         <!-- Gacha Action Buttons (1x and 10x) -->
-        <div class="recruit-action-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <div class="recruit-action-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px;">
           <button id="btn-summon-special-1" class="btn-special btn-block" style="padding:8px 4px; font-weight:bold; font-size:12px;">💎 Triệu Hồi x1 (💎5)</button>
           <button id="btn-summon-special-10" class="btn-special btn-block" style="padding:8px 4px; font-weight:bold; font-size:12px; background:#631866;">💎 Triệu Hồi x10 (💎45 <small style="color:#ffd700;">-10%</small>)</button>
         </div>
 
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
           <span style="font-size:10px; color:var(--text-muted);">Sức chứa thị trấn: <b id="gacha-pop-info">2/4</b></span>
           <button id="btn-toggle-rates" class="btn-text-only" style="font-size:10px; color:var(--accent-cyan);">[Xem Tỉ Lệ Xuất Hiện %]</button>
         </div>
 
         <!-- Drop Rates Table (Collapsible) -->
         <div id="gacha-rates-table" class="rates-table-box hidden">
-          <div class="rate-row"><span style="color:#bd00ff">🟣 Ưu Tú (Superior):</span> <b>80.0%</b></div>
-          <div class="rate-row"><span style="color:#ffd700">🟡 Anh Hùng (Heroic):</span> <b>19.9%</b></div>
-          <div class="rate-row"><span style="color:#ff3366">🔴 Huyền Thoại (Legend S+):</span> <b>0.1%</b></div>
-          <div style="font-size:9px; color:#ffb3c6; margin-top:4px; text-align:center;">✨ Tích lũy đủ 30 lượt quay chắc chắn nhận 1 Anh Hùng Huyền Thoại!</div>
+          <div class="rate-row"><span style="color:#ff3366">🔴 Huyền Thoại (Legend):</span> <b>0.1%</b></div>
+          <div class="rate-row"><span style="color:#ffd700">🟡 Anh Hùng (Heroic):</span> <b>1.0%</b></div>
+          <div class="rate-row"><span style="color:#bd00ff">🟣 Ưu Tú (Superior):</span> <b>20.0%</b></div>
+          <div class="rate-row"><span style="color:#00e5ff">🔵 Hiếm (Rare):</span> <b>80.0%</b></div>
+          <div class="rate-row"><span style="color:#ffffff">⚪ Thường (Normal):</span> <b>100% (Cơ bản)</b></div>
         </div>
 
         <!-- Result Display Container -->
@@ -341,9 +331,12 @@
 
         <!-- Waiting Queue Section -->
         <div class="waiting-queue-section" style="margin-top:8px; border-top:1px dashed #2f455c; padding-top:8px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:4px;">
             <span style="font-size:11px; font-weight:bold; color:var(--accent-cyan);">📋 HÀNG CHỜ CHIÊU MỘ (<span id="waiting-count">0</span>/20):</span>
-            <button id="btn-admit-all" class="btn-primary btn-xs" style="padding:2px 8px; font-size:10px;">⚡ Tiếp Nhận Hàng Loạt</button>
+            <div style="display:flex; gap:6px;">
+              <button id="btn-admit-all" class="btn-primary btn-xs" style="padding:2px 8px; font-size:10px;">⚡ Tiếp Nhận Hàng Loạt</button>
+              <button id="btn-dismiss-all" class="btn-danger btn-xs" style="padding:2px 8px; font-size:10px;">🚪 Trục Xuất Hàng Loạt</button>
+            </div>
           </div>
           <div id="waiting-hunter-list" class="waiting-list-box" style="display:flex; flex-direction:column; gap:6px; max-height:220px; overflow-y:auto;">
             <!-- Populated by JS -->
@@ -437,10 +430,6 @@
           <span>Hiệu ứng CRT Scanlines:</span>
           <button id="btn-setting-crt" class="btn-secondary">Bật</button>
         </div>
-        <div class="setting-row">
-          <span>Tốc độ giả lập:</span>
-          <button id="btn-setting-speed" class="btn-secondary">1x (Chuẩn)</button>
-        </div>
         <hr class="ascii-divider">
         <div class="save-actions">
           <button id="btn-save-game" class="btn-primary btn-block">💾 Lưu Game Ngay</button>
@@ -470,6 +459,29 @@
       </div>
       <div class="modal-body" id="dungeon-modal-content" style="padding: 10px;">
         <!-- Populated dynamically by DungeonSystem / App -->
+      </div>
+    </div>
+
+    <!-- MODAL: RESEARCH (VIỆN NGHIÊN CỨU CÔNG NGHỆ THỊ TRẤN) -->
+    <div id="modal-research" class="game-modal hidden" style="max-width: 650px;">
+      <div class="modal-header" style="background: linear-gradient(90deg, #102a3a 0%, #091522 100%); border-bottom: 1.5px solid #00e5ff;">
+        <h3 style="color:#00e5ff; display:flex; align-items:center; gap:6px;">💡 VIỆN NGHIÊN CỨU CÔNG NGHỆ THỊ TRẤN</h3>
+        <button class="btn-close-modal">✖</button>
+      </div>
+      <div id="research-subnav-bar" class="modal-subnav" style="display:flex; gap:4px; padding:6px 10px; background:rgba(0,0,0,0.3); border-bottom:1px solid rgba(255,255,255,0.08); overflow-x:auto;">
+        <button class="btn-subnav active" data-filter="all">Tất Cả</button>
+        <button class="btn-subnav" data-filter="economy">💰 Kinh Tế & Thủ Thành</button>
+        <button class="btn-subnav" data-filter="military">⚔️ Quân Sự & Bạo Kích</button>
+        <button class="btn-subnav" data-filter="survival">🧪 Sinh Tồn</button>
+        <button class="btn-subnav" data-filter="hunting">🏹 Hầm Ngục & Săn Bắt</button>
+      </div>
+      <div class="modal-body" style="padding: 10px;">
+        <div id="research-progress-header" style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; background:rgba(0,229,255,0.08); border:1px solid rgba(0,229,255,0.25); border-radius:6px; padding:6px 10px; font-size:11px;">
+          <!-- Populated dynamically -->
+        </div>
+        <div id="research-tech-list" style="display:flex; flex-direction:column; gap:6px; max-height:420px; overflow-y:auto;">
+          <!-- Populated dynamically -->
+        </div>
       </div>
     </div>
 
