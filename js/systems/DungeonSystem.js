@@ -18,10 +18,11 @@ class DungeonSystem {
 
   static getRaidTeam() {
     const hunters = window.gameState?.hunters || [];
-    // Pick living hunters, sorted by level & power descending
+    // Pick living hunters, sorted by combat power descending, take top 5 strongest
     return hunters
       .filter(h => h.hp > 0 && h.state !== 'DEAD')
-      .sort((a, b) => (b.level + (b.reincarnation * 50)) - (a.level + (a.reincarnation * 50)));
+      .sort((a, b) => (b.getCombatPower ? b.getCombatPower() : 0) - (a.getCombatPower ? a.getCombatPower() : 0))
+      .slice(0, 5);
   }
 
   // PHÍ MỞ CỔNG KẾT GIỚI HẦM NGỤC (TĂNG CAO LŨY TIẾN THEO CẤP TẦNG)
@@ -66,6 +67,14 @@ class DungeonSystem {
       return false;
     }
 
+    const squadPower = raidTeam.reduce((sum, h) => sum + (h.getCombatPower ? h.getCombatPower() : 0), 0);
+    const reqPower = floorData.reqPower || 3000;
+    if (squadPower < reqPower) {
+      const diff = reqPower - squadPower;
+      alert(`⚠️ CHƯA ĐỦ ĐIỀU KIỆN VÀO HẦM NGỤC:\n\nĐội thợ săn mạnh nhất (Top 5: ${CONFIG.formatNumber(squadPower)} CP) chưa đạt Lực Chiến Tối Thiểu (${CONFIG.formatNumber(reqPower)} CP) của [${floorData.name}]!\n\nBạn còn thiếu ${CONFIG.formatNumber(diff)} CP. Hãy cường hóa trang bị hoặc nâng cấp thợ săn trước khi khiêu chiến.`);
+      return false;
+    }
+
     // Spend Entry Fee
     window.gameState.spendGold(entryFee);
     window.logTicker.add(`🗝️ [VÀO HẦM NGỤC]: Đã chi 💰${feeStr}g mở Cổng Kết Giới Vực Thẳm Tầng ${floorNum}!`, 'trade');
@@ -90,10 +99,12 @@ class DungeonSystem {
         rankKey: h.rankKey,
         reincarnation: h.reincarnation || 0,
         level: h.level,
-        maxHp: h.maxHp,
+        maxHp: h.getTotalMaxHp ? h.getTotalMaxHp() : (h.maxHp || 100),
         hp: h.hp,
         atk: h.getTotalAtk ? h.getTotalAtk() : (h.atk || 20),
-        def: h.def || 10,
+        def: h.getTotalDef ? h.getTotalDef() : (h.def || 10),
+        critRate: h.getCritRate ? h.getCritRate() : 0.15,
+        critDmg: h.getCritDamage ? h.getCritDamage() : 1.85,
         isAlive: true
       })),
       timer: 0,
@@ -121,6 +132,9 @@ class DungeonSystem {
     battle.timer += deltaSeconds;
     battle.timeLeft = Math.max(0, battle.enrageSec - battle.timer);
 
+    const boss = battle.boss;
+    const livingHunters = battle.hunters.filter(h => h.isAlive && h.hp > 0);
+
     // Boss Phase & Enrage Calculations
     const hpRatio = boss.hp / boss.maxHp;
     const isEnraged = hpRatio <= 0.50;
@@ -146,18 +160,26 @@ class DungeonSystem {
         return;
       }
 
-      const isCrit = Math.random() < 0.22;
+      const critRate = h.critRate || 0.15;
+      const critDmg = h.critDmg || 1.85;
+      const isCrit = Math.random() < critRate;
       let baseDmg = Math.max(8, Math.floor(h.atk - (boss.def * 0.45)));
       
       // Phase 2 Boss Shield reduces incoming damage by 25%
       if (isEnraged) baseDmg = Math.max(5, Math.floor(baseDmg * 0.75));
 
-      const dmg = isCrit ? Math.floor(baseDmg * 1.85) : baseDmg;
+      // Tech: Dungeon Dominance (+25% Damage vs Dungeon Bosses)
+      if (window.gameState?.researched?.tech_dungeon_dominance) {
+        baseDmg = Math.floor(baseDmg * 1.25);
+      }
+
+      const dmg = isCrit ? Math.floor(baseDmg * critDmg) : baseDmg;
       boss.hp = Math.max(0, boss.hp - dmg);
       
       const starTxt = h.reincarnation > 0 ? '⭐'.repeat(h.reincarnation) : '';
       if (isCrit) {
-        battle.logs.unshift(`💥 [BẠO KÍCH!] ${starTxt}[${h.name}] tung đòn uy lực trúng ${boss.name} gây -${dmg} HP!`);
+        const critPct = Math.round(critDmg * 100);
+        battle.logs.unshift(`💥 [BẠO KÍCH ${critPct}%!] ${starTxt}[${h.name}] tung đòn uy lực trúng ${boss.name} gây -${dmg} HP!`);
       } else if (Math.random() < 0.25) {
         battle.logs.unshift(`🗡️ [${h.name}] chém ${boss.name} gây -${dmg} HP`);
       }
@@ -177,15 +199,16 @@ class DungeonSystem {
       const rollSkill = Math.random();
 
       // Skill A: Sát Chiêu Diệt Thế Diện Rộng (AOE Storm)
-      if (rollSkill < (isApocalypse ? 0.65 : (isEnraged ? 0.45 : 0.30))) {
-        const aoeBase = Math.max(15, Math.floor(effectiveBossAtk * (isApocalypse ? 0.85 : 0.60)));
+      if (rollSkill < (isApocalypse ? 0.60 : (isEnraged ? 0.40 : 0.25))) {
+        let aoeBase = Math.max(15, Math.floor(effectiveBossAtk * (isApocalypse ? 0.85 : 0.60)));
+        if (window.gameState?.researched?.tech_dungeon_dominance) aoeBase = Math.floor(aoeBase * 0.85);
+
         battle.logs.unshift(`🔥 [BOSS ĐẠI DIỆT CHIÊU!] ${boss.name} gầm vang trời đất, phóng cuồng lốc sát thương diện rộng -${aoeBase} HP!`);
         
         livingHunters.forEach(h => {
           const actualDmg = Math.max(10, Math.floor(aoeBase - (h.def * 0.3)));
           h.hp = Math.max(0, h.hp - actualDmg);
           
-          // Chance to inflict Bleed/Stun during AOE
           if (isEnraged && Math.random() < 0.25) {
             h.stunnedTurns = 1;
             battle.logs.unshift(`💫 [${h.name}] bị sóng xung kích làm choáng!`);
@@ -199,10 +222,11 @@ class DungeonSystem {
       }
       // Skill B: Đoạt Mệnh Kết Liễu (Execute) vào mục tiêu yếu nhất
       else if (isEnraged && Math.random() < 0.40) {
-        // Find hunter with lowest current HP
         const weakest = [...livingHunters].sort((a, b) => a.hp - b.hp)[0];
         if (weakest) {
-          const executeDmg = Math.max(25, Math.floor(effectiveBossAtk * 1.5 - (weakest.def * 0.2)));
+          let executeDmg = Math.max(25, Math.floor(effectiveBossAtk * 1.5 - (weakest.def * 0.2)));
+          if (window.gameState?.researched?.tech_dungeon_dominance) executeDmg = Math.floor(executeDmg * 0.85);
+
           weakest.hp = Math.max(0, weakest.hp - executeDmg);
           battle.logs.unshift(`⚡ [TRẢM SÁT KẾT LIỄU!] ${boss.name} tung trọng kích hủy diệt vào [${weakest.name}] gây -${executeDmg} HP!`);
           if (weakest.hp <= 0) {
@@ -214,7 +238,9 @@ class DungeonSystem {
       // Skill C: Đòn đánh đơn mục tiêu thông thường
       else {
         const target = livingHunters[Math.floor(Math.random() * livingHunters.length)];
-        const targetDmg = Math.max(15, Math.floor(effectiveBossAtk - (target.def * 0.4)));
+        let targetDmg = Math.max(15, Math.floor(effectiveBossAtk - (target.def * 0.4)));
+        if (window.gameState?.researched?.tech_dungeon_dominance) targetDmg = Math.floor(targetDmg * 0.85);
+
         target.hp = Math.max(0, target.hp - targetDmg);
         battle.logs.unshift(`⚔️ ${boss.name} tung đòn mãnh liệt trúng [${target.name}], gây -${targetDmg} HP!`);
         if (target.hp <= 0) {
@@ -270,7 +296,11 @@ class DungeonSystem {
     let rewardText = `💰 +${reward.gold}g` + (reward.gems ? `, 💎 +${reward.gems} Ngọc` : '');
 
     if (reward.materials) {
-      for (const [mKey, qty] of Object.entries(reward.materials)) {
+      for (let [mKey, qty] of Object.entries(reward.materials)) {
+        // Tech: Relic Harvest (+50% Breakthrough materials from Bosses)
+        if (window.gameState?.researched?.tech_relic_harvest && mKey.startsWith('mat_')) {
+          qty += Math.max(1, Math.floor(qty * 0.5));
+        }
         window.gameState.addItem(mKey, qty);
         const matName = CONFIG.ITEMS[mKey]?.name || mKey;
         const icon = CONFIG.ITEMS[mKey]?.icon || '💎';

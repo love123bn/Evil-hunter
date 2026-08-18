@@ -18,12 +18,8 @@ class CombatSystem {
       hunterAtk = Math.floor(hunterAtk * 1.5);
     }
 
-    let critChance = 0.15;
-    let critMul = 1.8;
-    if (window.gameState.researched?.tech_godly_armory) {
-      critChance = 0.35;
-      critMul = 2.5;
-    }
+    const critChance = hunter.getCritRate ? hunter.getCritRate() : 0.15;
+    const critMul = hunter.getCritDamage ? hunter.getCritDamage() : 1.8;
 
     const isCrit = Math.random() < critChance;
     let dmgToMonster = Math.max(1, hunterAtk - monster.def);
