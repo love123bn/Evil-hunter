@@ -49,11 +49,17 @@ class Hunter {
     this.gold = Number(options.gold) || 30; // Hunter's personal wallet
     this.bag = Array.isArray(options.bag) ? options.bag : []; // Raw loot items they are carrying
 
-    // Equipment
-    this.weapon = options.weapon || null; // e.g. { id, name, atk }
-    this.armor = options.armor || null;   // e.g. { id, name, def, hp }
-    this.weaponPlus = Number(options.weaponPlus) || 0; // +1 to +30
-    this.armorPlus = Number(options.armorPlus) || 0;   // +1 to +30
+    // Equipment (5 slots: Weapon, Armor, Ring, Amulet, Talisman)
+    this.weapon = options.weapon || null;     // e.g. { id, name, atk }
+    this.armor = options.armor || null;       // e.g. { id, name, def, hp }
+    this.ring = options.ring || null;         // e.g. { id, name, atk, crit }
+    this.amulet = options.amulet || null;     // e.g. { id, name, def, hp, critDmg }
+    this.talisman = options.talisman || null; // e.g. { id, name, atk, critRate }
+    this.weaponPlus = Number(options.weaponPlus) || 0;     // +1 to +30
+    this.armorPlus = Number(options.armorPlus) || 0;       // +1 to +30
+    this.ringPlus = Number(options.ringPlus) || 0;         // +1 to +30
+    this.amuletPlus = Number(options.amuletPlus) || 0;     // +1 to +30
+    this.talismanPlus = Number(options.talismanPlus) || 0; // +1 to +30
 
     // AI State Machine: 'HUNTING', 'FIGHTING', 'RETURNING', 'SELLING', 'EATING', 'RESTING', 'HEALING', 'SHOPPING', 'DEAD'
     this.state = options.state || 'HUNTING';
@@ -67,14 +73,26 @@ class Hunter {
     this.y = options.y || Math.floor(Math.random() * 4) + 1;
   }
 
-  // Get total ATK including gear & buffs
+  // Get total ATK including weapon, ring, talisman, plus bonuses & buffs
   getTotalAtk() {
     let wpnAtk = 0;
     if (this.weapon && this.weapon.atk) {
       const bonusPct = 1 + ((this.weaponPlus || 0) * 0.1);
       wpnAtk = Math.floor(this.weapon.atk * bonusPct);
     }
-    let val = (this.atk || 10) + wpnAtk;
+    let ringAtk = 0;
+    if (this.ring && this.ring.atk) {
+      let bonusPct = 1 + ((this.ringPlus || 0) * 0.1);
+      if (window.gameState?.researched?.tech_talisman_craft) bonusPct *= 1.20;
+      ringAtk = Math.floor(this.ring.atk * bonusPct);
+    }
+    let talAtk = 0;
+    if (this.talisman && this.talisman.atk) {
+      let bonusPct = 1 + ((this.talismanPlus || 0) * 0.1);
+      if (window.gameState?.researched?.tech_talisman_craft) bonusPct *= 1.20;
+      talAtk = Math.floor(this.talisman.atk * bonusPct);
+    }
+    let val = (this.atk || 10) + wpnAtk + ringAtk + talAtk;
     if (this.foodBuffTimer > 0 && this.foodBuffAtk > 0) {
       val += this.foodBuffAtk;
     }
@@ -90,32 +108,112 @@ class Hunter {
     return val;
   }
 
-  // Get total DEF including gear
+  // Get total DEF including armor, amulet, plus bonuses & tech
   getTotalDef() {
     let amrDef = 0;
     if (this.armor && this.armor.def) {
       const bonusPct = 1 + ((this.armorPlus || 0) * 0.1);
       amrDef = Math.floor(this.armor.def * bonusPct);
     }
-    let val = (this.def || 5) + amrDef;
+    let amuletDef = 0;
+    if (this.amulet && this.amulet.def) {
+      let bonusPct = 1 + ((this.amuletPlus || 0) * 0.1);
+      if (window.gameState?.researched?.tech_talisman_craft) bonusPct *= 1.20;
+      amuletDef = Math.floor(this.amulet.def * bonusPct);
+    }
+    let val = (this.def || 5) + amrDef + amuletDef;
     if (window.gameState.researched?.tech_divine_smith) {
       val = Math.floor(val * 1.25);
     }
     return val;
   }
 
+  // Get total Max HP including gear bonus
+  getTotalMaxHp() {
+    let bonusHp = 0;
+    if (this.armor && this.armor.hp) {
+      const bonusPct = 1 + ((this.armorPlus || 0) * 0.1);
+      bonusHp += Math.floor(this.armor.hp * bonusPct);
+    }
+    if (this.amulet && this.amulet.hp) {
+      const bonusPct = 1 + ((this.amuletPlus || 0) * 0.1);
+      bonusHp += Math.floor(this.amulet.hp * bonusPct);
+    }
+    return (this.maxHp || 100) + bonusHp;
+  }
+
+  // TÍNH TỔNG TỈ LỆ CHÍ MẠNG (CRIT RATE - Giá trị từ 0.05 đến 0.90)
+  getCritRate() {
+    let rate = 0.05; // 5% Base
+    if (this.classKey === 'assassin') rate += 0.10; // +10% cho Sát Thủ
+
+    // Talisman (Pháp Bảo)
+    if (this.talisman && this.talisman.critRate) {
+      let bonusPct = 1 + ((this.talismanPlus || 0) * 0.1);
+      if (window.gameState?.researched?.tech_talisman_craft) bonusPct *= 1.20;
+      rate += (this.talisman.critRate * bonusPct) / 100;
+    }
+    // Ring (Nhẫn)
+    if (this.ring && this.ring.crit) {
+      let bonusPct = 1 + ((this.ringPlus || 0) * 0.1);
+      if (window.gameState?.researched?.tech_talisman_craft) bonusPct *= 1.20;
+      rate += (this.ring.crit * bonusPct) / 100;
+    }
+    // Trait bonus
+    if (this.trait && (this.trait.id === 'eagle' || this.trait.id === 'crit')) {
+      rate += 0.10;
+    }
+    // Tech: Crit Mastery (+10% Crit Rate)
+    if (window.gameState.researched?.tech_crit_mastery) {
+      rate += 0.10;
+    }
+    // Tech: Godly Armory (+20% Crit Rate)
+    if (window.gameState.researched?.tech_godly_armory) {
+      rate += 0.20;
+    }
+    return Math.min(0.90, Math.max(0.05, rate));
+  }
+
+  // TÍNH TỔNG SÁT THƯƠNG CHÍ MẠNG (CRIT DAMAGE - Khởi điểm 1.5x)
+  getCritDamage() {
+    let mul = 1.50; // 150% Base Crit Damage
+
+    // Amulet (Dây Chuyền)
+    if (this.amulet && this.amulet.critDmg) {
+      let bonusPct = 1 + ((this.amuletPlus || 0) * 0.1);
+      if (window.gameState?.researched?.tech_talisman_craft) bonusPct *= 1.20;
+      mul += (this.amulet.critDmg * bonusPct) / 100;
+    }
+    // Trait bonus
+    if (this.trait && this.trait.id === 'berserk') {
+      mul += 0.35;
+    }
+    // Tech: Crit Mastery (+35% Crit Damage)
+    if (window.gameState.researched?.tech_crit_mastery) {
+      mul += 0.35;
+    }
+    // Tech: Godly Armory (+50% Crit Damage)
+    if (window.gameState.researched?.tech_godly_armory) {
+      mul += 0.50;
+    }
+    return Math.max(1.50, mul);
+  }
+
   // TÍNH TOÁN LỰC CHIẾN (COMBAT POWER / CP)
   getCombatPower() {
     const totalAtk = this.getTotalAtk();
     const totalDef = this.getTotalDef();
-    const maxHp = this.maxHp || 100;
+    const maxHp = this.getTotalMaxHp();
+    const critRate = this.getCritRate();
+    const critDmg = this.getCritDamage();
     const star = this.reincarnation || 0;
     
-    // Công thức: (Sát Thương * 2.5 + Giáp * 3.0 + Máu * 0.8) * Hệ Số Cảnh Giới Sao
+    // Công thức: (Sát Thương * 2.5 + Giáp * 3.0 + Máu * 0.8) * Hệ Số Bạo Kích * Hệ Số Cảnh Giới Sao
     const basePower = (totalAtk * 2.5) + (totalDef * 3.0) + (maxHp * 0.8);
+    const critMultiplier = 1 + (critRate * (critDmg - 1.0));
     const starMult = 1 + (star * 0.4);
     
-    return Math.floor(basePower * starMult);
+    return Math.floor(basePower * critMultiplier * starMult);
   }
 
   // AI Update Tick
@@ -492,7 +590,7 @@ class Hunter {
     if (this.level < 100) return { ok: false, reason: `Cần đạt Lv.100 (Hiện tại: Lv.${this.level})` };
     const req = this.getBreakthroughInfo();
     if (window.gameState.gold < req.gold) {
-      return { ok: false, reason: `Thiếu Vàng Ngân Khố (Cần 💰${req.gold.toLocaleString()}g)` };
+      return { ok: false, reason: `Thiếu Vàng Ngân Khố (Cần 💰${CONFIG.formatNumber(req.gold)})` };
     }
     for (const [matKey, count] of Object.entries(req.materials)) {
       const has = window.gameState.storage[matKey] || 0;
@@ -602,8 +700,14 @@ class Hunter {
       bag: this.bag,
       weapon: this.weapon,
       armor: this.armor,
+      ring: this.ring,
+      amulet: this.amulet,
+      talisman: this.talisman,
       weaponPlus: this.weaponPlus || 0,
       armorPlus: this.armorPlus || 0,
+      ringPlus: this.ringPlus || 0,
+      amuletPlus: this.amuletPlus || 0,
+      talismanPlus: this.talismanPlus || 0,
       state: this.state,
       hasInnBed: this.hasInnBed || false,
       breakthroughPity: this.breakthroughPity || 0,

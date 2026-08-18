@@ -172,7 +172,7 @@ class Building {
 
     // Check Gold
     if (window.gameState.gold < targetUpgrade.gold) {
-      alert(`Thiếu vàng ngân khố: Cần 💰${targetUpgrade.gold.toLocaleString()}g (Hiện có: 💰${window.gameState.gold.toLocaleString()}g)!`);
+      alert(`Thiếu vàng ngân khố: Cần 💰${CONFIG.formatNumber(targetUpgrade.gold)} (Hiện có: 💰${CONFIG.formatNumber(window.gameState.gold)})!`);
       return false;
     }
 
@@ -226,7 +226,7 @@ class Building {
 
     // Check Gold
     if (state.gold < nextTown.gold) {
-      alert(`Thiếu vàng ngân khố: Cần 💰${nextTown.gold.toLocaleString()}g (Hiện có: 💰${state.gold.toLocaleString()}g)!`);
+      alert(`Thiếu vàng ngân khố: Cần 💰${CONFIG.formatNumber(nextTown.gold)} (Hiện có: 💰${CONFIG.formatNumber(state.gold)})!`);
       return false;
     }
 
