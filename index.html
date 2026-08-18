@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Town of Hunters: ASCII Chronicles - Game Quản Lý Thị Trấn Thợ Săn</title>
+  <meta name="description" content="Tựa game mô phỏng quản lý thị trấn thợ săn retro ASCII Roguelike & Tycoon. Xây dựng lò rèn, quán trọ, chiêu mộ thợ săn tự động diệt quỷ và phòng thủ Đêm Trăng Máu.">
+  
+  <!-- Google Fonts for retro monospace aesthetic -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&family=VT323&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/ascii-art.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body class="crt-theme">
+  <!-- CRT Screen Overlay Effect -->
+  <div id="crt-overlay" class="scanlines"></div>
+
+  <!-- Main Mobile App Container -->
+  <div id="app-container">
+    
+    <!-- HEADER: Town Stats & Currency Bar -->
+    <header id="game-header">
+      <div class="header-row top-bar">
+        <div class="town-badge" id="town-level-badge">
+          <span class="ascii-icon">🏛️</span>
+          <span id="txt-town-name">Thị Trấn Cấp 1</span>
+        </div>
+        <div class="cycle-badge" id="day-night-badge">
+          <span id="cycle-icon">☀️</span>
+          <span id="txt-cycle-time">Ngày 1 - 08:00</span>
+        </div>
+      </div>
+
+      <div class="header-row currency-bar">
+        <div class="curr-item gold" title="Vàng Thị Trấn">
+          <span class="c-icon">💰</span>
+          <span id="val-gold">500</span> GOLD
+        </div>
+        <div class="curr-item gems" title="Ngọc Triệu Hồi (Gacha)">
+          <span class="c-icon">💠</span>
+          <span id="val-gems">10</span>
+        </div>
+        <div class="curr-item pop" title="Dân số Thợ Săn">
+          <span class="c-icon">👥</span>
+          <span id="val-pop">2/4</span>
+        </div>
+        <div class="curr-item power" title="Tổng Lực Chiến Toàn Thị Trấn" style="color:#ffaa00; border-color:rgba(255,170,0,0.3);">
+          <span class="c-icon">⚔️</span>
+          <span id="val-power">0</span>
+        </div>
+        <div class="curr-item storage" title="Sức chứa Kho">
+          <span class="c-icon">📦</span>
+          <span id="val-storage">15/50</span>
+        </div>
+      </div>
+
+      <!-- Threat / Blood Moon Bar -->
+      <div class="header-row threat-bar-wrap">
+        <span class="threat-label">Trăng Máu:</span>
+        <div class="threat-progress-track">
+          <div id="threat-progress-fill" style="width: 15%;"></div>
+        </div>
+        <span id="threat-timer-text">04:30</span>
+      </div>
+    </header>
+
+    <!-- LIVE HUNTERS STATUS DECK -->
+    <section id="ascii-viewport-section">
+      <div class="viewport-header">
+        <span class="vp-title" id="txt-current-zone">👥 THỢ SĂN TRONG LÀNG (<span id="txt-hunter-count">2</span>)</span>
+        <div class="vp-controls">
+          <button id="btn-change-zone" class="btn-xs">Vùng Săn 🗺️</button>
+        </div>
+      </div>
+
+      <!-- Live Hunter Information Deck -->
+      <div id="hunter-live-deck" class="hunter-cards-deck">
+        <!-- Dynamically rendered Hunter Status Cards with live HP, Hunger, Fatigue, Action -->
+      </div>
+    </section>
+
+    <!-- REAL-TIME LOG TICKER -->
+    <section id="log-section">
+      <div class="log-header">
+        <span class="log-title">📜 NHẬT KÝ HOẠT ĐỘNG THỜI GIAN THỰC</span>
+        <button id="btn-clear-log" class="btn-text-only">Xóa</button>
+      </div>
+      <div id="log-content" class="log-feed">
+        <!-- Log entries -->
+      </div>
+    </section>
+
+    <!-- MAIN BUILDING & QUICK ACTION GRID -->
+    <nav id="town-action-grid">
+      <button class="grid-btn" id="grid-btn-forge" data-modal="modal-forge">
+        <span class="g-icon">⚒️</span>
+        <span class="g-label">Lò Rèn</span>
+        <span class="g-badge" id="badge-forge">Lv.1</span>
+      </button>
+
+      <button class="grid-btn" id="grid-btn-inn" data-modal="modal-inn">
+        <span class="g-icon">🏨</span>
+        <span class="g-label">Quán Trọ</span>
+        <span class="g-badge" id="badge-inn">Lv.1</span>
+      </button>
+
+      <button class="grid-btn" id="grid-btn-tavern" data-modal="modal-tavern">
+        <span class="g-icon">🍲</span>
+        <span class="g-label">Quán Ăn</span>
+        <span class="g-badge" id="badge-tavern">Lv.1</span>
+      </button>
+
+      <button class="grid-btn" id="grid-btn-clinic" data-modal="modal-clinic">
+        <span class="g-icon">🏥</span>
+        <span class="g-label">Trạm Y Tế</span>
+        <span class="g-badge" id="badge-clinic">Lv.1</span>
+      </button>
+
+      <button class="grid-btn" id="grid-btn-trading" data-modal="modal-trading">
+        <span class="g-icon">⚖️</span>
+        <span class="g-label">Chợ/Loot</span>
+        <span class="g-badge highlight" id="badge-trading">Thu mua</span>
+      </button>
+
+      <button class="grid-btn" id="grid-btn-bounty" data-modal="modal-bounty">
+        <span class="g-icon">📜</span>
+        <span class="g-label">Treo Thưởng</span>
+        <span class="g-badge" id="badge-bounty">3 Quest</span>
+      </button>
+
+      <button class="grid-btn" id="grid-btn-recruit" data-modal="modal-recruit">
+        <span class="g-icon">🔮</span>
+        <span class="g-label">Chiêu Mộ</span>
+        <span class="g-badge" id="badge-recruit">Gacha</span>
+      </button>
+
+      <button class="grid-btn" id="grid-btn-hall" data-modal="modal-hall">
+        <span class="g-icon">🏛️</span>
+        <span class="g-label">Thị Chính</span>
+        <span class="g-badge" id="badge-hall">Cấp 1</span>
+      </button>
+    </nav>
+
+    <!-- BOTTOM FIXED NAVIGATION TABS -->
+    <footer id="main-tabs-bar">
+      <button class="tab-btn active" data-tab="tab-town">
+        <span class="t-icon">🏰</span>
+        <span class="t-label">Thị Trấn</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-dungeon">
+        <span class="t-icon">🗝️</span>
+        <span class="t-label">Hầm Ngục</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-hunters">
+        <span class="t-icon">👥</span>
+        <span class="t-label">Thợ Săn</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-storage">
+        <span class="t-icon">📦</span>
+        <span class="t-label">Kho Đồ</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-research">
+        <span class="t-icon">💡</span>
+        <span class="t-label">Công Nghệ</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-settings">
+        <span class="t-icon">⚙️</span>
+        <span class="t-label">Cài Đặt</span>
+      </button>
+    </footer>
+
+  </div>
+
+  <!-- MODALS CONTAINER -->
+  <div id="modal-backdrop" class="modal-backdrop hidden">
+    
+    <!-- MODAL: FORGE (LÒ RÈN) -->
+    <div id="modal-forge" class="game-modal hidden">
+      <div class="modal-header">
+        <h3>⚒️ LÒ RÈN THỊ TRẤN [LV.<span class="b-lvl">1</span>]</h3>
+        <button class="btn-close-modal">✖</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">Chế tạo vũ khí & áo giáp từ nguyên liệu. Thợ săn sẽ ghé mua khi có đủ tiền vàng!</p>
+        <div class="tabs-sub">
+          <button class="sub-tab active" data-forge-cat="weapons">🗡️ Vũ Khí</button>
+          <button class="sub-tab" data-forge-cat="armors">🦺 Áo Giáp</button>
+          <button class="sub-tab" data-forge-cat="enchant">✨ Cường Hóa (+1 ➔ +30)</button>
+        </div>
+        <div id="forge-craft-list" class="item-grid-list">
+          <!-- Populated by JS -->
+        </div>
+        <div class="building-upgrade-box" id="upgrade-box-forge">
+          <button id="btn-upgrade-forge" class="btn-primary btn-block">Nâng Cấp Lò Rèn (💰 200 GOLD)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: INN (QUÁN TRỌ) -->
+    <div id="modal-inn" class="game-modal hidden">
+      <div class="modal-header">
+        <h3>🏨 QUÁN TRỌ GIẢI MỎI [LV.<span class="b-lvl">1</span>]</h3>
+        <button class="btn-close-modal">✖</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">Nơi thợ săn nghỉ ngơi hồi phục Thể Lực (Fatigue) đầy 100%. Thu phí phòng nghỉ theo cấp độ và phẩm cấp Thợ Săn.</p>
+        <div class="inn-stats-box">
+          <div class="stat-row"><span>Số giường phòng trọ:</span> <b id="inn-beds">3 Giường</b></div>
+          <div class="stat-row"><span>Tốc độ hồi thể lực:</span> <b id="inn-speed" style="color:#39ff14;">+12 Thể lực/giây</b></div>
+          <div class="stat-row"><span>Khách đang ngủ:</span> <b id="inn-active-guests">0 Thợ săn</b></div>
+          <div class="stat-row"><span>Tổng vàng đã thu:</span> <b id="inn-revenue" style="color:#ffd700;">0 GOLD</b></div>
+        </div>
+        <div class="building-upgrade-box" id="upgrade-box-inn">
+          <button id="btn-upgrade-inn" class="btn-primary btn-block">Nâng Cấp Giường Ngủ (💰 150 GOLD)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: TAVERN (QUÁN ĂN) -->
+    <div id="modal-tavern" class="game-modal hidden">
+      <div class="modal-header">
+        <h3>🍲 QUÁN ĂN THỊ TRẤN [LV.<span class="b-lvl">1</span>]</h3>
+        <button class="btn-close-modal">✖</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">Nấu các món ăn ngon từ Thịt & Rau để phục vụ thợ săn khi bị Đói bụng (Hunger).</p>
+        <div id="tavern-menu-list" class="item-grid-list">
+          <!-- Populated by JS -->
+        </div>
+        <div class="building-upgrade-box" id="upgrade-box-tavern">
+          <button id="btn-upgrade-tavern" class="btn-primary btn-block">Mở Khóa Bếp Lớn (💰 150 GOLD)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: CLINIC (TRẠM Y TẾ) -->
+    <div id="modal-clinic" class="game-modal hidden">
+      <div class="modal-header">
+        <h3>🏥 TRẠM Y TẾ & HỒI SINH [LV.<span class="b-lvl">1</span>]</h3>
+        <button class="btn-close-modal">✖</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">Điều trị vết thương, giải độc và hồi sinh thợ săn khi ngã gục ngoài bãi quái.</p>
+        <div id="clinic-potion-list" class="item-grid-list">
+          <!-- Populated by JS -->
+        </div>
+        <div class="building-upgrade-box" id="upgrade-box-clinic">
+          <button id="btn-upgrade-clinic" class="btn-primary btn-block">Mở Rộng Phòng Cứu Thương (💰 180 GOLD)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: TRADING POST (SÀN GIAO DỊCH / THU MUA LOOT) -->
+    <div id="modal-trading" class="game-modal hidden">
+      <div class="modal-header">
+        <h3>⚖️ SÀN THU MUA NGUYÊN LIỆU</h3>
+        <button class="btn-close-modal">✖</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">Thợ săn sẽ tự động bán chiến lợi phẩm nhặt được cho Thị Trấn theo bảng giá niêm yết:</p>
+        <div id="trading-loot-table" class="item-grid-list">
+          <!-- Populated by JS -->
+        </div>
+        <div class="quick-action-btns">
+          <button id="btn-buy-all-loot" class="btn-secondary btn-block">Thu Mua Nhanh Tất Cả Loot</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: BOUNTY BOARD (BẢNG TREO THƯỞNG) -->
+    <div id="modal-bounty" class="game-modal hidden">
+      <div class="modal-header">
+        <h3>📜 BẢNG NHIỆM VỤ TREO THƯỞNG</h3>
+        <button class="btn-close-modal">✖</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">Treo thưởng Vàng để định hướng thợ săn đi săn loại quái hoặc thu gom nguyên liệu cần thiết:</p>
+        <div id="bounty-quest-list" class="quest-list">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: RECRUITMENT / GACHA (CHIÊU MỘ THỢ SĂN) -->
+    <div id="modal-recruit" class="game-modal hidden">
+      <div class="modal-header">
+        <h3>🔮 ĐÀI TRIỆU HỒI ANH HÙNG</h3>
+        <button class="btn-close-modal">✖</button>
+      </div>
+      <div class="modal-body">
+        <!-- Summoning Altar Banner -->
+        <div class="gacha-altar-container">
+          <div class="altar-card altar-special" style="width:100%;">
+            <div class="altar-icon">💎</div>
+            <div class="altar-title">TRIỆU HỒI ANH HÙNG (NGỌC THẦN BÍ)</div>
+            <div class="altar-rates-badge special-badge">🟣 Ưu Tú ➔ 🟡 Anh Hùng ➔ 🔴 Huyền Thoại</div>
+            <div class="altar-glow-ring special-ring"></div>
+          </div>
+        </div>
+
+        <!-- Pity Progress Bars -->
+        <div class="pity-status-strip">
+          <div class="pity-box">
+            <div class="pity-label">
+              <span>Bảo hiểm Huyền Thoại (Đỏ S+):</span>
+              <b id="pity-special-txt" style="color:var(--accent-red);">0/30 Lượt</b>
+            </div>
+            <div class="bar-track" style="height:6px;">
+              <div id="pity-special-bar" class="bar-fill" style="width:0%; background:linear-gradient(90deg, #bd00ff, #ff3366);"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gacha Action Buttons (1x and 10x) -->
+        <div class="recruit-action-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          <button id="btn-summon-special-1" class="btn-special btn-block" style="padding:8px 4px; font-weight:bold; font-size:12px;">💎 Triệu Hồi x1 (💎5)</button>
+          <button id="btn-summon-special-10" class="btn-special btn-block" style="padding:8px 4px; font-weight:bold; font-size:12px; background:#631866;">💎 Triệu Hồi x10 (💎45 <small style="color:#ffd700;">-10%</small>)</button>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px;">
+          <span style="font-size:10px; color:var(--text-muted);">Sức chứa thị trấn: <b id="gacha-pop-info">2/4</b></span>
+          <button id="btn-toggle-rates" class="btn-text-only" style="font-size:10px; color:var(--accent-cyan);">[Xem Tỉ Lệ Xuất Hiện %]</button>
+        </div>
+
+        <!-- Drop Rates Table (Collapsible) -->
+        <div id="gacha-rates-table" class="rates-table-box hidden">
+          <div class="rate-row"><span style="color:#bd00ff">🟣 Ưu Tú (Superior):</span> <b>80.0%</b></div>
+          <div class="rate-row"><span style="color:#ffd700">🟡 Anh Hùng (Heroic):</span> <b>19.9%</b></div>
+          <div class="rate-row"><span style="color:#ff3366">🔴 Huyền Thoại (Legend S+):</span> <b>0.1%</b></div>
+          <div style="font-size:9px; color:#ffb3c6; margin-top:4px; text-align:center;">✨ Tích lũy đủ 30 lượt quay chắc chắn nhận 1 Anh Hùng Huyền Thoại!</div>
+        </div>
+
+        <!-- Result Display Container -->
+        <div id="recruit-result-box" class="recruit-result-container hidden">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Waiting Queue Section -->
+        <div class="waiting-queue-section" style="margin-top:8px; border-top:1px dashed #2f455c; padding-top:8px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span style="font-size:11px; font-weight:bold; color:var(--accent-cyan);">📋 HÀNG CHỜ CHIÊU MỘ (<span id="waiting-count">0</span>/20):</span>
+            <button id="btn-admit-all" class="btn-primary btn-xs" style="padding:2px 8px; font-size:10px;">⚡ Tiếp Nhận Hàng Loạt</button>
+          </div>
+          <div id="waiting-hunter-list" class="waiting-list-box" style="display:flex; flex-direction:column; gap:6px; max-height:220px; overflow-y:auto;">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: CITY HALL (TÒA THỊ CHÍNH) -->
+    <div id="modal-hall" class="game-modal hidden">
+      <div class="modal-header">
+        <h3>🏛️ TÒA THỊ CHÍNH THỊ TRẤN</h3>
+        <button class="btn-close-modal">✖</button>
+      </div>
+      <div class="modal-body">
+        <div class="hall-info-box">
+          <p><strong>Cấp Thị Trấn:</strong> <span id="hall-town-lvl">1</span></p>
+          <p><strong>Sức chứa thợ săn tối đa:</strong> <span id="hall-max-hunters">4</span></p>
+          <p><strong>Hiệu quả kinh tế:</strong> +<span id="hall-tax-rate">5</span>% Vàng</p>
+        </div>
+        <div class="hall-desc-box">
+          <p>Nâng cấp Thị Trấn để mở rộng ranh giới, tăng sức chứa thợ săn, mở khóa bãi quái mới và công trình cao cấp.</p>
+        </div>
+        <div class="building-upgrade-box" id="upgrade-box-hall">
+          <button id="btn-upgrade-town" class="btn-primary btn-block">Nâng Cấp Thị Trấn Lên Cấp Kế (💰 500g)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: ZONE SELECTOR (CHỌN BÃI SĂN) -->
+    <div id="modal-zone" class="game-modal hidden">
+      <div class="modal-header">
+        <h3>🗺️ DANH SÁCH BÃI SĂN NGOẠI Ô</h3>
+        <button class="btn-close-modal">✖</button>
+      </div>
+      <div class="modal-body">
+        <div id="zone-list" class="zone-list-container">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: HUNTERS MANAGER TAB/MODAL -->
+    <div id="modal-hunters" class="game-modal hidden">
+      <div class="modal-header">
+        <h3>👥 DANH SÁCH THỢ SĂN TRONG LÀNG</h3>
+        <button class="btn-close-modal">✖</button>
+      </div>
+      <div class="modal-body">
+        <div id="hunters-full-list" class="hunters-full-list">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: STORAGE (KHO ĐỒ THỊ TRẤN) -->
+    <div id="modal-storage" class="game-modal hidden">
+      <div class="modal-header">
+        <h3>📦 KHO NGUYÊN LIỆU & TRANG BỊ</h3>
+        <button class="btn-close-modal">✖</button>
+      </div>
+      <div class="modal-body">
+        <div id="storage-item-grid" class="item-grid-list">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: RESEARCH (VIỆN CÔNG NGHỆ) -->
+    <div id="modal-research" class="game-modal hidden">
+      <div class="modal-header">
+        <h3>💡 VIỆN NGHIÊN CỨU & CÔNG NGHỆ</h3>
+        <button class="btn-close-modal">✖</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">Nghiên cứu nâng cấp nội tại vĩnh viễn cho toàn bộ hoạt động thị trấn:</p>
+        <div id="research-tech-list" class="quest-list">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: SETTINGS (CÀI ĐẶT) -->
+    <div id="modal-settings" class="game-modal hidden">
+      <div class="modal-header">
+        <h3>⚙️ CÀI ĐẶT & LƯU DỮ LIỆU</h3>
+        <button class="btn-close-modal">✖</button>
+      </div>
+      <div class="modal-body">
+        <div class="setting-row">
+          <span>Hiệu ứng CRT Scanlines:</span>
+          <button id="btn-setting-crt" class="btn-secondary">Bật</button>
+        </div>
+        <div class="setting-row">
+          <span>Tốc độ giả lập:</span>
+          <button id="btn-setting-speed" class="btn-secondary">1x (Chuẩn)</button>
+        </div>
+        <hr class="ascii-divider">
+        <div class="save-actions">
+          <button id="btn-save-game" class="btn-primary btn-block">💾 Lưu Game Ngay</button>
+          <button id="btn-reset-game" class="btn-danger btn-block">⚠️ Xóa Dữ Liệu Chơi Lại</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: HUNTER DETAIL (CHI TIẾT THỢ SĂN) -->
+    <div id="modal-hunter-detail" class="game-modal hidden">
+      <div class="modal-header">
+        <h3 id="hd-name">⚔️ Thợ Săn: Kael</h3>
+        <button class="btn-close-modal">✖</button>
+      </div>
+      <div class="modal-body">
+        <div class="hunter-detail-card" id="hd-card-content">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: DUNGEON (HẦM NGỤC LEO TẦNG & BOSS RAID) -->
+    <div id="modal-dungeon" class="game-modal hidden" style="max-width: 650px;">
+      <div class="modal-header" style="background: linear-gradient(90deg, #3d0c1d 0%, #15081c 100%); border-bottom: 1.5px solid #ff3366;">
+        <h3 style="color:#ff88aa; display:flex; align-items:center; gap:6px;">🗝️ HẦM NGỤC VÔ TẬN & BOSS THỬ THÁCH</h3>
+        <button class="btn-close-modal">✖</button>
+      </div>
+      <div class="modal-body" id="dungeon-modal-content" style="padding: 10px;">
+        <!-- Populated dynamically by DungeonSystem / App -->
+      </div>
+    </div>
+
+    <!-- MODAL: OFFLINE REWARD DIALOG -->
+    <div id="modal-offline" class="game-modal hidden">
+      <div class="modal-header">
+        <h3>💤 BÁO CÁO THU HOẠCH KHI RỜI MẠNG</h3>
+        <button class="btn-close-modal">✖</button>
+      </div>
+      <div class="modal-body text-center">
+        <p>Trong lúc ngài đi vắng (<span id="off-time">10 phút</span>), các thợ săn đã chăm chỉ chiến đấu:</p>
+        <div class="offline-rewards-box">
+          <div class="off-reward-item">💰 Vàng thu được: +<span id="off-gold">120</span>g</div>
+          <div class="off-reward-item">💀 Quái vật đã diệt: <span id="off-kills">24</span> con</div>
+          <div class="off-reward-item">📦 Loot thu về kho: <span id="off-loot">8</span> món</div>
+        </div>
+        <button id="btn-claim-offline" class="btn-primary btn-block">Nhận Thưởng & Tiếp Tục</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- INTRO & TUTORIAL OVERLAY DIALOG -->
+  <div id="intro-dialog-layer" class="intro-layer hidden">
+    <div class="intro-box">
+      <div class="intro-avatar">👴</div>
+      <div class="intro-speech">
+        <h4 id="intro-speaker">Trưởng Lão Eldrin:</h4>
+        <p id="intro-text">Đang tải...</p>
+      </div>
+      <div class="intro-actions">
+        <button id="btn-intro-next" class="btn-primary">Tiếp Tục ⏩</button>
+        <button id="btn-intro-skip" class="btn-text-only">Bỏ qua</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GAME TOAST NOTIFICATION CONTAINER -->
+  <div id="game-toast-container" class="game-toast-container"></div>
+
+  <!-- GAME ALERT / CONFIRM POPUP MODAL -->
+  <div id="modal-game-alert" class="game-dialog-overlay hidden">
+    <div class="game-dialog-box" style="border-radius: 10px; width: 100%; max-width: 380px; max-height: 80vh; animation: pop-in 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; flex-direction: column; overflow: hidden;">
+      <div class="dialog-header" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px;">
+        <h3 id="dialog-title" style="margin: 0; font-size: 13px; color: var(--accent-gold); display: flex; align-items: center; gap: 6px;"><span id="dialog-icon">⚠️</span> <span id="dialog-title-txt">THÔNG BÁO THỊ TRẤN</span></h3>
+        <button id="btn-dialog-close" class="btn-close-modal">✖</button>
+      </div>
+      <div class="dialog-body" style="padding: 16px 14px; overflow-y: auto;">
+        <div id="dialog-message" class="dialog-content-text">
+          <!-- Text message populated dynamically -->
+        </div>
+      </div>
+      <div class="dialog-footer" style="padding: 12px 14px; display: flex; gap: 10px;">
+        <button id="btn-dialog-cancel" class="btn-secondary hidden" style="flex:1; padding: 8px;">HỦY BỎ</button>
+        <button id="btn-dialog-ok" class="btn-primary" style="flex:1; padding: 8px;">ĐÃ HIỂU</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT MODULES -->
+  <script src="js/config.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/entities/Hunter.js"></script>
+  <script src="js/entities/Monster.js"></script>
+  <script src="js/entities/Building.js"></script>
+  <script src="js/systems/Combat.js"></script>
+  <script src="js/systems/Economy.js"></script>
+  <script src="js/systems/Invasion.js"></script>
+  <script src="js/systems/DungeonSystem.js"></script>
+  <script src="js/renderer.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
