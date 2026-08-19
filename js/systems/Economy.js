@@ -768,7 +768,7 @@ class EconomySystem {
           hunter.foodBuffAtk = (food.buffAtk || 0) + bonusBuff;
           hunter.foodBuffTimer = 25; // Active for combat
 
-          window.logTicker.add(`🍲 [TỰ ĐỘNG]: Quán Ăn nấu [${food.name}] cho [${hunter.name}] (+${earned}g Thị Trấn, +${hunter.foodBuffAtk} ATK)!`, 'trade');
+          window.logTicker.add(`🍲 [TỰ ĐỘNG]: Quán Ăn nấu [${food.name}] cho [${hunter.name}] (+${earned} GOLD Thị Trấn, +${hunter.foodBuffAtk} ATK)!`, 'trade');
           if (window.soundFX && window.soundFX.playTavern) window.soundFX.playTavern();
           return true;
         }
@@ -785,7 +785,7 @@ class EconomySystem {
       window.gameState.addGold(earned);
       window.gameState.buildings.tavern.revenue += earned;
       hunter.hunger = 100;
-      window.logTicker.add(`🍞 [TỰ ĐỘNG]: Quán Ăn phục vụ Bánh Mì & Súp Dã Chiến cho [${hunter.name}] (-${standardCost}g Thợ săn, +${earned}g Thị Trấn)!`, 'trade');
+      window.logTicker.add(`🍞 [TỰ ĐỘNG]: Quán Ăn phục vụ Bánh Mì & Súp Dã Chiến cho [${hunter.name}] (-${standardCost} GOLD Thợ săn, +${earned} GOLD Thị Trấn)!`, 'trade');
       return true;
     } else {
       const paid = Math.max(0, hunter.gold);
