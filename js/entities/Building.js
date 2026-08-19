@@ -66,8 +66,8 @@ class Building {
     const isMax = targetLevel === Building.MAX_LEVEL;
     if (buildingKey === 'inn') {
       const beds = Math.min(35, 3 + Math.floor(targetLevel * 0.7));
-      const rate = 12 + (targetLevel - 1) * 5;
-      desc = `Quán Trọ Cấp ${targetLevel}${isMax ? ' (TỐI THƯỢNG MAX)' : ''}: ${beds} Giường ngủ (+${rate} Thể lực/s & Tăng giá phòng)`;
+      const rate = 4 + (targetLevel - 1) * 1;
+      desc = `Quán Trọ Cấp ${targetLevel}${isMax ? ' (TỐI THƯỢNG MAX)' : ''}: ${beds} Giường ngủ (+${rate * 2} Thể lực/s & Tăng giá phòng)`;
     } else if (buildingKey === 'forge') {
       const eff = Math.min(60, targetLevel * 1.3);
       const maxPlus = Math.min(30, targetLevel * 5);
