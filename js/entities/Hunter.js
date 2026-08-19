@@ -336,10 +336,28 @@ class Hunter {
       return;
     }
 
-    // Search target monster
+    // Search target monster with priority for active bounty quest targets
     const activeMonsters = window.gameState.monsters.filter(m => m.hp > 0);
     if (activeMonsters.length > 0) {
-      this.targetMonster = activeMonsters[Math.floor(Math.random() * activeMonsters.length)];
+      const activeBounties = (window.gameState?.bounties || []).filter(b => !b.completed);
+      const questMonsterIds = new Set();
+      const questLootIds = new Set();
+
+      activeBounties.forEach(b => {
+        if (b.type === 'kill' && b.target) questMonsterIds.add(b.target);
+        if (b.type === 'collect' && b.target) questLootIds.add(b.target);
+      });
+
+      // Filter monsters matching active quest targets first
+      const questTargets = activeMonsters.filter(m => 
+        questMonsterIds.has(m.templateId || m.id) || (m.loot && questLootIds.has(m.loot))
+      );
+
+      if (questTargets.length > 0) {
+        this.targetMonster = questTargets[Math.floor(Math.random() * questTargets.length)];
+      } else {
+        this.targetMonster = activeMonsters[Math.floor(Math.random() * activeMonsters.length)];
+      }
       this.changeState('FIGHTING', `Tấn công [${this.targetMonster.name}]!`);
     } else {
       // Wander
