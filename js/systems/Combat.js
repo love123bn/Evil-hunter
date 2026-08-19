@@ -115,10 +115,10 @@ class CombatSystem {
       window.logTicker.add(`⚔️ [${hunter.name}] tiêu diệt [${monster.name}] (+${expEarned} EXP, +${goldEarned}g)`, 'combat');
     }
 
-    // Respawn monster in zone after delay
+    // Respawn monster in zone after delay (Quest targets prioritized to be most populous)
     const zone = CONFIG.ZONES.find(z => z.id === window.gameState.currentZoneId) || CONFIG.ZONES[0];
     const diff = CONFIG.DIFFICULTIES.find(d => d.id === window.gameState.currentDifficulty) || CONFIG.DIFFICULTIES[0];
-    const template = zone.monsters[Math.floor(Math.random() * zone.monsters.length)];
+    const template = CombatSystem.getZoneMonsterTemplate(zone);
     
     // Replace dead monster
     const idx = window.gameState.monsters.indexOf(monster);
@@ -127,6 +127,35 @@ class CombatSystem {
         window.gameState.monsters[idx] = new Monster(template, diff);
       }, 1500);
     }
+  }
+
+  // Get zone monster template with heavy weight on active quest targets (making them the most populated)
+  static getZoneMonsterTemplate(zone) {
+    if (!zone || !zone.monsters || zone.monsters.length === 0) {
+      return (CONFIG.ZONES?.[0]?.monsters?.[0]) || { id: "m_slime", name: "Slime Nhầy", hp: 45, atk: 6, def: 1, exp: 12, gold: 6, loot: "slime_gel" };
+    }
+
+    const activeBounties = (window.gameState?.bounties || []).filter(b => !b.completed);
+    const questMonsterIds = new Set();
+    const questLootIds = new Set();
+
+    activeBounties.forEach(b => {
+      if (b.type === 'kill' && b.target) questMonsterIds.add(b.target);
+      if (b.type === 'collect' && b.target) questLootIds.add(b.target);
+    });
+
+    // If any monster matches an active kill or collect quest, give high spawn weight (7x)
+    const weighted = [];
+    zone.monsters.forEach(m => {
+      const isKillTarget = questMonsterIds.has(m.id);
+      const isLootTarget = m.loot && questLootIds.has(m.loot);
+      const weight = (isKillTarget || isLootTarget) ? 7 : 1;
+      for (let i = 0; i < weight; i++) {
+        weighted.push(m);
+      }
+    });
+
+    return weighted[Math.floor(Math.random() * weighted.length)] || zone.monsters[0];
   }
 }
 

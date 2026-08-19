@@ -3,6 +3,37 @@
  */
 
 class EconomySystem {
+  // Record craft progress for lifetime stats & active bounty quests (handles both manual & auto crafting)
+  static recordCraftProgress(type, itemName = '') {
+    if (!window.gameState) return;
+    if (!window.gameState.stats) window.gameState.stats = {};
+    window.gameState.stats.itemsCrafted = (window.gameState.stats.itemsCrafted || 0) + 1;
+
+    // Check Bounty Quests (Craft type)
+    if (Array.isArray(window.gameState.bounties)) {
+      window.gameState.bounties.forEach(b => {
+        if (!b.completed && b.type === 'craft') {
+          const match = !b.target || 
+                        b.target === type || 
+                        b.target === 'all' || 
+                        b.target === 'gear' || 
+                        b.target === 'equipment' ||
+                        (['weapons', 'armors', 'rings', 'amulets', 'talismans'].includes(type) && (b.target === 'equipment' || b.target === 'gear' || b.target === 'all')) ||
+                        (b.target === 'weapons' && type === 'weapons') ||
+                        (b.target === 'armors' && type === 'armors');
+          if (match) {
+            b.current = Math.min(b.count, b.current + 1);
+            if (b.current >= b.count) {
+              b.completed = true;
+              window.logTicker.add(`📜 [HOÀN THÀNH QUEST]: [${b.title}] đã xong! Nhận thưởng ngay!`, 'loot');
+              if (window.soundFX && window.soundFX.playLevelUp) window.soundFX.playLevelUp();
+            }
+          }
+        }
+      });
+    }
+  }
+
   // Craft weapon or armor at Forge
   static craftEquipment(type, recipeId) {
     const recipes = CONFIG.RECIPES[type];
@@ -31,20 +62,9 @@ class EconomySystem {
       window.gameState.consumeItem(matId, count);
     }
 
-    window.gameState.stats.itemsCrafted++;
+    EconomySystem.recordCraftProgress(type, recipe.name);
     window.logTicker.add(`🔨 Đã rèn [${recipe.name}] (-${fee}g phí rèn)! Đang bày bán giá 💰${recipe.costGold}g cho thợ săn.`, 'loot');
     if (window.soundFX) window.soundFX.playForge();
-
-    // Check Bounty Quests (Craft type)
-    window.gameState.bounties.forEach(b => {
-      if (!b.completed && b.type === 'craft') {
-        b.current = Math.min(b.count, b.current + 1);
-        if (b.current >= b.count) {
-          b.completed = true;
-          window.logTicker.add(`📜 [HOÀN THÀNH QUEST]: [${b.title}] đã xong! Nhận thưởng ngay!`, 'loot');
-        }
-      }
-    });
 
     // Auto-equip or sell to highest level hunter without gear
     for (const h of window.gameState.hunters) {
@@ -98,7 +118,7 @@ class EconomySystem {
     for (const [matId, count] of Object.entries(food.materials)) {
       window.gameState.consumeItem(matId, count);
     }
-    window.gameState.stats.itemsCrafted++;
+    EconomySystem.recordCraftProgress('foods', food.name);
     window.logTicker.add(`🍲 Đã nấu món ngon [${food.name}] (-${fee}g phí nấu)! Bày sẵn tại Quán Ăn giá 💰${food.costGold}g.`, 'trade');
     if (window.soundFX && window.soundFX.playTavern) window.soundFX.playTavern();
     return true;
@@ -126,7 +146,7 @@ class EconomySystem {
     for (const [matId, count] of Object.entries(pot.materials)) {
       window.gameState.consumeItem(matId, count);
     }
-    window.gameState.stats.itemsCrafted++;
+    EconomySystem.recordCraftProgress('potions', pot.name);
     window.logTicker.add(`⚗️ Đã bào chế [${pot.name}] (-${fee}g phí điều chế)! Bày sẵn tại Trạm Y Tế giá 💰${pot.costGold}g.`, 'trade');
     if (window.soundFX && window.soundFX.playClinic) window.soundFX.playClinic();
     return true;
@@ -298,6 +318,7 @@ class EconomySystem {
             
             hunter.weapon = { ...wpn };
             hunter.weaponPlus = 0;
+            EconomySystem.recordCraftProgress('weapons', wpn.name);
             window.logTicker.add(`⚔️ [TỰ ĐỘNG]: Lò Rèn đã rèn [${wpn.name}] cho [${hunter.name}] (+${earned} GOLD cho Thị Trấn)!`, 'loot');
             if (window.soundFX && window.soundFX.playForge) window.soundFX.playForge();
             upgraded = true;
@@ -336,6 +357,7 @@ class EconomySystem {
 
             hunter.armor = { ...amr };
             hunter.armorPlus = 0;
+            EconomySystem.recordCraftProgress('armors', amr.name);
             window.logTicker.add(`🛡️ [TỰ ĐỘNG]: Lò Rèn đã rèn [${amr.name}] cho [${hunter.name}] (+${earned} GOLD cho Thị Trấn)!`, 'loot');
             if (window.soundFX && window.soundFX.playForge) window.soundFX.playForge();
             upgraded = true;
@@ -374,6 +396,7 @@ class EconomySystem {
 
             hunter.ring = { ...ring };
             hunter.ringPlus = 0;
+            EconomySystem.recordCraftProgress('rings', ring.name);
             window.logTicker.add(`💍 [TỰ ĐỘNG]: Lò Rèn đã rèn [${ring.name}] cho [${hunter.name}] (+${earned} GOLD cho Thị Trấn)!`, 'loot');
             if (window.soundFX && window.soundFX.playForge) window.soundFX.playForge();
             upgraded = true;
@@ -412,6 +435,7 @@ class EconomySystem {
 
             hunter.amulet = { ...amul };
             hunter.amuletPlus = 0;
+            EconomySystem.recordCraftProgress('amulets', amul.name);
             window.logTicker.add(`📿 [TỰ ĐỘNG]: Lò Rèn đã rèn [${amul.name}] cho [${hunter.name}] (+${earned} GOLD cho Thị Trấn)!`, 'loot');
             if (window.soundFX && window.soundFX.playForge) window.soundFX.playForge();
             upgraded = true;
@@ -450,6 +474,7 @@ class EconomySystem {
 
             hunter.talisman = { ...tal };
             hunter.talismanPlus = 0;
+            EconomySystem.recordCraftProgress('talismans', tal.name);
             window.logTicker.add(`🔮 [TỰ ĐỘNG]: Lò Rèn đã chế tạo Pháp Bảo [${tal.name}] cho [${hunter.name}] (+${earned} GOLD cho Thị Trấn)!`, 'loot');
             if (window.soundFX && window.soundFX.playForge) window.soundFX.playForge();
             upgraded = true;
