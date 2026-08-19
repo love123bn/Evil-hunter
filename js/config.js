@@ -32,13 +32,13 @@ const CONFIG = {
     return `${CONFIG.formatNumber(n)} GOLD`;
   },
   
-  // RANKS & RARITIES (Hệ số chỉ số và độ tốn tài nguyên Đột Phá)
+  // RANKS & RARITIES (Hệ số Chỉ Số Siêu Khủng & Đột Phá)
   HUNTER_RANKS: {
-    NORMAL: { id: "normal", name: "Thường", color: "#ffffff", multiplier: 1.0, breakthroughMul: 0.8, icon: "⚪" },
-    RARE: { id: "rare", name: "Hiếm", color: "#00e5ff", multiplier: 1.25, breakthroughMul: 1.0, icon: "🔵" },
-    SUPERIOR: { id: "superior", name: "Ưu Tú", color: "#bd00ff", multiplier: 1.6, breakthroughMul: 1.3, icon: "🟣" },
-    HEROIC: { id: "heroic", name: "Anh Hùng", color: "#ffd700", multiplier: 2.1, breakthroughMul: 1.8, icon: "🟡" },
-    LEGEND: { id: "legend", name: "Huyền Thoại", color: "#ff3366", multiplier: 3.0, breakthroughMul: 2.5, icon: "🔴" }
+    NORMAL:   { id: "normal",   name: "Thường",       color: "#ffffff", multiplier: 1.0,  breakthroughMul: 0.8, critRate: 0.00, critDmg: 0.00, cpMul: 1.0,  icon: "⚪" },
+    RARE:     { id: "rare",     name: "Hiếm",         color: "#00e5ff", multiplier: 1.8,  breakthroughMul: 1.0, critRate: 0.08, critDmg: 0.25, cpMul: 1.35, icon: "🔵" },
+    SUPERIOR: { id: "superior", name: "Ưu Tú",        color: "#bd00ff", multiplier: 3.0,  breakthroughMul: 1.3, critRate: 0.16, critDmg: 0.50, cpMul: 1.85, icon: "🟣" },
+    HEROIC:   { id: "heroic",   name: "Anh Hùng",     color: "#ffd700", multiplier: 5.0,  breakthroughMul: 1.8, critRate: 0.25, critDmg: 0.90, cpMul: 2.60, icon: "🟡" },
+    LEGEND:   { id: "legend",   name: "Huyền Thoại", color: "#ff3366", multiplier: 9.0,  breakthroughMul: 2.5, critRate: 0.40, critDmg: 1.60, cpMul: 4.20, icon: "🔴" }
   },
 
   // HUNTER CLASSES
@@ -85,13 +85,15 @@ const CONFIG = {
     }
   },
 
-  // HUNTER TRAITS
+  // HUNTER TRAITS (Đặc Tính Thiên Phú Đa Dạng)
   HUNTER_TRAITS: [
-    { id: "glutton", name: "Ham Ăn", desc: "Nhanh đói nhưng tăng 20% Tốc Đánh", icon: "🍖" },
-    { id: "frugal", name: "Tiết Kiệm", desc: "Giữ nhiều vàng hơn khi đi săn", icon: "🪙" },
     { id: "brave", name: "Dũng Cảm", desc: "+15% Sát thương khi máu dưới 30%", icon: "🔥" },
     { id: "lucky", name: "Thần Tài", desc: "+25% Tỷ lệ rơi vật phẩm hiếm", icon: "🍀" },
-    { id: "swift", name: "Nhanh Nhẹn", desc: "+30% Tốc độ di chuyển", icon: "⚡" }
+    { id: "swift", name: "Nhanh Nhẹn", desc: "+30% Tốc độ di chuyển", icon: "⚡" },
+    { id: "glutton", name: "Ham Ăn", desc: "Nhanh đói nhưng tăng 20% Tốc Đánh", icon: "🍖" },
+    { id: "frugal", name: "Tiết Kiệm", desc: "Giữ nhiều vàng hơn khi đi săn", icon: "🪙" },
+    { id: "eagle", name: "Mắt Đại Bàng", desc: "+10% Tỉ lệ Bạo Kích (Crit Rate)", icon: "🎯" },
+    { id: "berserk", name: "Cuồng Nộ", desc: "+35% Sát thương Chí Mạng (Crit DMG)", icon: "💥" }
   ],
 
   // DIFFICULTY MODES (Hệ số Độ Khó toàn vùng săn)
@@ -331,23 +333,23 @@ const CONFIG = {
 
   // TAVERN FOOD RECIPES (Quán ăn phục vụ thợ săn đói - chi phí tăng lũy tiến hàm số mũ)
   FOODS: [
-    { id: "food_slime_jelly", name: "Thạch Slime Mật Ong", icon: "🍮", craftFee: 10, costGold: 35, materials: { slime_gel: 4 }, hungerRestore: 40, buffAtk: 4 },
-    { id: "food_wolf_steak", name: "Bít Tết Sói Rừng Nướng", icon: "🥩", craftFee: 35, costGold: 130, materials: { wolf_pelt: 4, goblin_tooth: 4 }, hungerRestore: 60, buffAtk: 12 },
-    { id: "food_dark_soup", name: "Canh Thảo Dược Hắc Ám", icon: "🍲", craftFee: 120, costGold: 480, materials: { dark_cloth: 5, cursed_bone: 5 }, hungerRestore: 80, buffAtk: 28 },
-    { id: "food_lava_grill", name: "Bò Nướng Đá Nham Thạch", icon: "🍢", craftFee: 450, costGold: 1800, materials: { lava_ore: 6, spirit_dust: 6 }, hungerRestore: 90, buffAtk: 55 },
-    { id: "food_dragon_roast", name: "Đại Tiệc Thịt Rồng Nướng", icon: "🍖", craftFee: 1600, costGold: 6800, materials: { dragon_scale: 5, lava_ore: 8 }, hungerRestore: 100, buffAtk: 95 },
-    { id: "food_immortal_feast", name: "Yến Tiệc Bất Diệt Malakor", icon: "👑", craftFee: 5500, costGold: 25000, materials: { dragon_scale: 10, spirit_dust: 12, lava_ore: 10 }, hungerRestore: 100, buffAtk: 180 }
+    { id: "food_slime_jelly", name: "Thạch Slime Mật Ong", icon: "🍮", craftFee: 10, costGold: 35, materials: { slime_gel: 4 }, hungerRestore: 40, buffAtk: 4, desc: "Món tráng miệng ngọt dịu khai vị, tăng nhẹ sức chiến đấu" },
+    { id: "food_wolf_steak", name: "Bít Tết Sói Rừng Nướng", icon: "🥩", craftFee: 35, costGold: 130, materials: { wolf_pelt: 4, goblin_tooth: 4 }, hungerRestore: 60, buffAtk: 12, desc: "Thịt sói nướng thảo mộc săn chắc, bồi bổ thể lực dẻo dai" },
+    { id: "food_dark_soup", name: "Canh Thảo Dược Hắc Ám", icon: "🍲", craftFee: 120, costGold: 480, materials: { dark_cloth: 5, cursed_bone: 5 }, hungerRestore: 80, buffAtk: 28, desc: "Hầm từ tinh hoa thảo dược bóng đêm, kích phát tiềm năng nội tại" },
+    { id: "food_lava_grill", name: "Bò Nướng Đá Nham Thạch", icon: "🍢", craftFee: 450, costGold: 1800, materials: { lava_ore: 6, spirit_dust: 6 }, hungerRestore: 90, buffAtk: 55, desc: "Nướng chín trên đá dung nham rực lửa, bùng nổ uy lực đòn đánh" },
+    { id: "food_dragon_roast", name: "Đại Tiệc Thịt Rồng Nướng", icon: "🍖", craftFee: 1600, costGold: 6800, materials: { dragon_scale: 5, lava_ore: 8 }, hungerRestore: 100, buffAtk: 95, desc: "Thịt rồng thượng hạng trứ danh, ban phát dũng khí và uy lực vô song" },
+    { id: "food_immortal_feast", name: "Yến Tiệc Bất Diệt Malakor", icon: "👑", craftFee: 5500, costGold: 25000, materials: { dragon_scale: 10, spirit_dust: 12, lava_ore: 10 }, hungerRestore: 100, buffAtk: 180, desc: "Món ăn thần thoại tối thượng, cường hóa sát thương cực hạn cho thợ săn" }
   ],
 
   // CLINIC POTIONS (Trạm Y Tế bán cho thợ săn hồi máu theo cấp độ - chi phí tăng lũy tiến hàm số mũ)
   POTIONS: [
-    { id: "pot_small_heal", name: "Thuốc Trị Thương Thô Sơ", icon: "🧪", craftFee: 12, costGold: 40, materials: { slime_gel: 4 }, healHp: 90, reqLvl: 1 },
-    { id: "pot_wolf_salve", name: "Cao Dược Bầy Sói", icon: "🧴", craftFee: 40, costGold: 140, materials: { goblin_tooth: 5, wolf_pelt: 3 }, healHp: 240, reqLvl: 15 },
-    { id: "pot_spirit_elixir", name: "Tiên Dược Hồi Phục Oán Linh", icon: "⚗️", craftFee: 135, costGold: 520, materials: { cursed_bone: 6, dark_cloth: 5 }, healHp: 550, reqLvl: 30 },
-    { id: "pot_magma_elixir", name: "Linh Dược Nham Thạch", icon: "🍶", craftFee: 480, costGold: 1950, materials: { spirit_dust: 6, lava_ore: 6 }, healHp: 1300, reqLvl: 45 },
-    { id: "pot_dragon_blood", name: "Huyết Dược Long Thần", icon: "🍷", craftFee: 1700, costGold: 7200, materials: { dragon_scale: 5, lava_ore: 6 }, healHp: 2800, reqLvl: 65 },
-    { id: "pot_void_nectar", name: "Thần Dược Cực Phẩm Hư Không", icon: "✨", craftFee: 6000, costGold: 28000, materials: { dragon_scale: 10, spirit_dust: 10 }, healHp: 6500, reqLvl: 85 },
-    { id: "pot_revive_scroll", name: "Bùa Hồi Sinh Tức Thì", icon: "📜", craftFee: 3500, costGold: 15000, materials: { cursed_bone: 10, dark_cloth: 8, spirit_dust: 6 }, healHp: 99999, reqLvl: 1 }
+    { id: "pot_small_heal", name: "Thuốc Trị Thương Thô Sơ", icon: "🧪", craftFee: 12, costGold: 40, materials: { slime_gel: 4 }, healHp: 90, reqLvl: 1, desc: "Thuốc cầm máu cơ bản từ dịch Slime" },
+    { id: "pot_wolf_salve", name: "Cao Dược Bầy Sói", icon: "🧴", craftFee: 40, costGold: 140, materials: { goblin_tooth: 5, wolf_pelt: 3 }, healHp: 240, reqLvl: 15, desc: "Cao dược điều chế từ nanh sói giúp vết thương mau lành" },
+    { id: "pot_spirit_elixir", name: "Tiên Dược Hồi Phục Oán Linh", icon: "⚗️", craftFee: 135, costGold: 520, materials: { cursed_bone: 6, dark_cloth: 5 }, healHp: 550, reqLvl: 30, desc: "Linh dược hồi phục sinh lực và thanh tẩy thương tích" },
+    { id: "pot_magma_elixir", name: "Linh Dược Nham Thạch", icon: "🍶", craftFee: 480, costGold: 1950, materials: { spirit_dust: 6, lava_ore: 6 }, healHp: 1300, reqLvl: 45, desc: "Dược phẩm nham thạch kích thích tế bào hồi phục nhanh" },
+    { id: "pot_dragon_blood", name: "Huyết Dược Long Thần", icon: "🍷", craftFee: 1700, costGold: 7200, materials: { dragon_scale: 5, lava_ore: 6 }, healHp: 2800, reqLvl: 65, desc: "Huyết dược quý hiếm từ Long Thần hồi lượng máu cực lớn" },
+    { id: "pot_void_nectar", name: "Thần Dược Cực Phẩm Hư Không", icon: "✨", craftFee: 6000, costGold: 28000, materials: { dragon_scale: 10, spirit_dust: 10 }, healHp: 6500, reqLvl: 85, desc: "Thần dược hư không tối thượng của bậc thầy y thuật" },
+    { id: "pot_revive_scroll", name: "Bùa Hồi Sinh Tức Thì", icon: "📜", craftFee: 16000, costGold: 68000, materials: { dragon_scale: 12, spirit_dust: 15, cursed_bone: 20 }, healHp: 99999, reqLvl: 1, desc: "Cực phẩm bùa chú cổ đại, hồi sinh 100% sinh lực tức thì ngay khi tử trận" }
   ],
 
   // PROGRESSIVE SCALING & CONSTRUCTION TIME FOR BUILDING UPGRADES (CÂN BẰNG CÀY CUỐC THEO VÙNG SĂN)
@@ -486,11 +488,11 @@ const CONFIG = {
   RESEARCH_TECHS: [
     // NHÁNH 1: KINH TẾ & THỊ TRẤN (CHI PHÍ LŨY TIẾN HÀM MŨ LV.1 -> 50)
     { id: "tech_tax_master", branch: "economy", name: "Bậc Thầy Thuế Vụ", desc: "Tăng +15% vàng thu được từ mọi dịch vụ Quán Trọ, Quán Ăn, Y Tế", costGold: 350, reqTownLvl: 1 },
-    { id: "tech_storage_expand", branch: "economy", name: "Mở Rộng Hầm Chứa I", desc: "Tăng vĩnh viễn +60 Sức chứa Kho Đồ Thị Trấn", costGold: 1200, reqTownLvl: 3 },
+    { id: "tech_bounty_reward_1", branch: "economy", name: "Thù Lao Hậu Hĩnh I", desc: "Tăng +30% Vàng thưởng từ Bảng Nhiệm Vụ Treo Thưởng", costGold: 1200, reqTownLvl: 3 },
     { id: "tech_gold_merchant", branch: "economy", name: "Hiệp Hội Thương Gia", desc: "Thợ săn kiếm thêm +25% Vàng khi hạ gục quái vật", costGold: 15000, reqTownLvl: 8 },
-    { id: "tech_fortified_bastion", branch: "economy", name: "Tường Thành Kiên Cố", desc: "Tăng vĩnh viễn +50% Máu Cổng Thành và giảm 25% sát thương quái trong Đêm Trăng Máu", costGold: 200000, reqTownLvl: 15 },
-    { id: "tech_storage_expand_2", branch: "economy", name: "Mở Rộng Hầm Chứa II", desc: "Tăng vĩnh viễn thêm +120 Sức chứa Kho Đồ", costGold: 2400000, reqTownLvl: 24 },
-    { id: "tech_ballista_towers", branch: "economy", name: "Tháp Nỏ Phòng Thủ", desc: "Tự động bắn tỉa gây +80 Sát thương diện rộng lên quái vật mỗi giây trong Đêm Trăng Máu", costGold: 32000000, reqTownLvl: 35 },
+    { id: "tech_fortified_bastion", branch: "economy", name: "Thành Trì Kiên Cố", desc: "Tăng vĩnh viễn +20% Giáp Phòng Ngự (DEF) cho toàn bộ Thợ Săn", costGold: 200000, reqTownLvl: 15 },
+    { id: "tech_bounty_reward_2", branch: "economy", name: "Thù Lao Hậu Hĩnh II", desc: "Tăng thêm +50% Vàng và +1 Kim Cương từ mọi Nhiệm Vụ Treo Thưởng", costGold: 2400000, reqTownLvl: 24 },
+    { id: "tech_ballista_towers", branch: "economy", name: "Tháp Nỏ Viễn Trình", desc: "Tăng thêm +100 Sát Thương tấn công (ATK) trực tiếp cho toàn bộ Thợ Săn", costGold: 32000000, reqTownLvl: 35 },
     { id: "tech_imperial_treasury", branch: "economy", name: "Ngân Khố Đế Vương", desc: "Tăng +35% vàng từ mọi nguồn thu trong toàn bộ Thị Trấn", costGold: 290000000, reqTownLvl: 45 },
 
     // NHÁNH 2: LUYỆN KIM & QUÂN SỰ (CHI PHÍ LŨY TIẾN HÀM MŨ LV.1 -> 50)

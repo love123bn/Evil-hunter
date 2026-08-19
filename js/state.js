@@ -18,14 +18,6 @@ class GameState {
     this.dayCount = 1;
     this.isDay = true;
     
-    // Blood Moon Threat Cycle & Town Gate Defense
-    this.threatMax = 300; // 5 minutes cycle
-    this.threatTimer = 300;
-    this.isBloodMoon = false;
-    this.gateHp = 1000;
-    this.maxGateHp = 1000;
-    this.bloodMoonBreached = false;
-    
     // Active Zone & Difficulty
     this.currentZoneId = "zone_1";
     this.currentDifficulty = "diff_normal";
@@ -93,91 +85,78 @@ class GameState {
     this.crtOn = true;
   }
 
-  // Calculate maximum Town Gate HP based on Town Level & Research
-  getGateMaxHp() {
-    const base = 800 + ((this.townLevel || 1) * 350);
-    let multiplier = 1.0;
-    if (this.researched?.tech_divine_smith) multiplier *= 1.3;
-    if (this.researched?.tech_fortified_bastion) multiplier *= 1.5;
-    return Math.floor(base * multiplier);
-  }
 
-  // Calculate current storage count
-  getStorageCount() {
-    return Object.values(this.storage).reduce((sum, q) => sum + q, 0);
-  }
 
-  // Calculate progressive storage expansion cost in gold
-  getStorageExpansionCost() {
-    const times = this.storageExpansions || 0;
-    // Base cost 150g, scales up progressively with each expansion (+45%), rounded to nearest 10g
-    return Math.round((150 * Math.pow(1.45, times)) / 10) * 10;
-  }
-
-  // Recalculate Total Storage Capacity: Base Town + Manual Expansions + Tech Research
-  recalculateMaxStorage() {
-    let base = 60;
+  // Calculate maximum storage capacity based on Town Hall level
+  getMaxStorage() {
     const curLvl = this.townLevel || 1;
-    if (curLvl > 1 && typeof Building !== 'undefined' && Building.getTownUpgradeData) {
-      const townData = Building.getTownUpgradeData(curLvl);
-      if (townData && townData.storage) {
-        base = townData.storage;
-      }
-    }
-    const expansionBonus = (this.storageExpansions || 0) * 30;
-    const techBonus = (this.researched?.['tech_storage_expand'] ? 60 : 0) + (this.researched?.['tech_storage_expand_2'] ? 120 : 0);
-    this.maxStorage = base + expansionBonus + techBonus;
+    if (curLvl === 1) return 60;
+    const upgradeData = CONFIG.TOWN_UPGRADES?.find(u => u.level === curLvl);
+    if (upgradeData && upgradeData.storage) return upgradeData.storage;
+    return 60 + (curLvl - 1) * 80;
+  }
+
+  // Safe alias for backward compatibility
+  recalculateMaxStorage() {
+    this.maxStorage = this.getMaxStorage();
     return this.maxStorage;
   }
 
-  // Add item to town storage (With Auto-Sell safety valve)
+  // Calculate current total storage count
+  getStorageCount() {
+    return Object.values(this.storage || {}).reduce((sum, q) => sum + q, 0);
+  }
+
+  // Add item to town storage (Auto-liquidates common excess loot down to ~85% if full)
   addItem(itemId, amount = 1) {
-    if (this.getStorageCount() + amount > this.maxStorage) {
-      if (this.autoSellStorage) {
-        this.checkAutoStorageSell();
-      } else {
-        return false; // Storage full
-      }
+    const max = this.getMaxStorage();
+    const curCount = this.getStorageCount();
+
+    // If storage is full or will exceed max, auto-sell excess common loot to clear down to ~85%
+    if (curCount + amount > max) {
+      this.autoLiquidateExcessStorage(max);
     }
 
     this.storage[itemId] = (this.storage[itemId] || 0) + amount;
-
-    // Proactive check when approaching 90% capacity
-    if (this.autoSellStorage && this.getStorageCount() >= Math.floor(this.maxStorage * 0.9)) {
-      this.checkAutoStorageSell();
-    }
-
     return true;
   }
 
-  // Auto-Sell excess raw loot to Merchant Caravan when storage gets full
-  checkAutoStorageSell() {
+  // Smart Auto-Sell: Liquidates common excess monster loot to maintain storage at ~85%
+  autoLiquidateExcessStorage(maxStorage) {
+    const targetCount = Math.floor(maxStorage * 0.85);
+    let curCount = this.getStorageCount();
+    if (curCount <= targetCount) return;
+
     let soldCount = 0;
     let earnedGold = 0;
 
-    Object.entries(this.storage).forEach(([id, count]) => {
-      // NEVER auto-sell precious breakthrough relics or valuable craft materials
-      if (id.startsWith('mat_') || id === 'dragon_scale') {
-        return;
-      }
+    // Prioritize liquidating common monster loot first (Never sell precious breakthrough relics mat_ or dragon_scale)
+    const entries = Object.entries(this.storage);
+    for (const [id, count] of entries) {
+      if (id.startsWith('mat_') || id === 'dragon_scale') continue;
 
-      // If we have more than 3 of any common raw loot item, sell half of the excess
-      if (count > 3) {
+      if (count > 2) {
         const itemData = window.CONFIG?.ITEMS[id];
         if (itemData) {
-          const sellAmount = Math.floor(count / 2);
-          this.storage[id] -= sellAmount;
-          const val = sellAmount * itemData.basePrice;
-          earnedGold += val;
-          soldCount += sellAmount;
+          const neededToRemove = curCount - targetCount;
+          const toSell = Math.min(count - 2, neededToRemove);
+          if (toSell > 0) {
+            this.storage[id] -= toSell;
+            if (this.storage[id] <= 0) delete this.storage[id];
+            const val = toSell * itemData.basePrice;
+            earnedGold += val;
+            soldCount += toSell;
+            curCount -= toSell;
+            if (curCount <= targetCount) break;
+          }
         }
       }
-    });
+    }
 
     if (soldCount > 0 && earnedGold > 0) {
       this.addGold(earnedGold);
       if (window.logTicker) {
-        window.logTicker.add(`🚢 [TỰ ĐỘNG XUẤT KHẨU]: Kho đồ gần đầy (≥90%)! Thương Đội đã tự thu mua ${soldCount}x nguyên liệu dư thừa, thu về 💰+${earnedGold}g!`, 'loot');
+        window.logTicker.add(`🚢 [TỰ ĐỘNG XUẤT KHẨU]: Kho đầy! Thương Đội đã tự thu mua ${soldCount}x nguyên liệu dư thừa, nạp 💰+${earnedGold} GOLD vào Ngân Khố!`, 'loot');
       }
     }
   }
@@ -232,12 +211,12 @@ class GameState {
         stats: this.stats,
         currentZoneId: this.currentZoneId,
         currentDifficulty: this.currentDifficulty,
-        threatTimer: this.threatTimer,
         dayCount: this.dayCount,
         dungeonMaxFloor: this.dungeonMaxFloor || 0,
         dungeonCurrentFloor: this.dungeonCurrentFloor || 1,
         dungeonClearedFloors: this.dungeonClearedFloors || {},
         dungeonSweepsLeft: this.dungeonSweepsLeft !== undefined ? this.dungeonSweepsLeft : 5,
+        rivalsData: this.rivalsData || null,
         hunters: this.hunters.map(h => h.serialize()),
         waitingHunters: (this.waitingHunters || []).map(h => h.serialize()),
         lastSaved: Date.now()
@@ -274,12 +253,12 @@ class GameState {
       this.stats = data.stats || this.stats;
       this.currentZoneId = data.currentZoneId || this.currentZoneId;
       this.currentDifficulty = data.currentDifficulty || this.currentDifficulty;
-      this.threatTimer = data.threatTimer || this.threatTimer;
       this.dayCount = data.dayCount || this.dayCount;
       this.dungeonMaxFloor = data.dungeonMaxFloor || 0;
       this.dungeonCurrentFloor = data.dungeonCurrentFloor || 1;
       this.dungeonClearedFloors = data.dungeonClearedFloors || {};
       this.dungeonSweepsLeft = data.dungeonSweepsLeft !== undefined ? data.dungeonSweepsLeft : 5;
+      this.rivalsData = data.rivalsData || null;
 
       // Restore hunters
       if (data.hunters && Array.isArray(data.hunters)) {
@@ -293,8 +272,8 @@ class GameState {
         this.waitingHunters = [];
       }
 
-      // Recalculate combined storage (Town base + Manual expansions + Tech)
-      this.recalculateMaxStorage();
+      // Recalculate combined storage
+      this.maxStorage = this.getMaxStorage();
 
       // Check offline progression
       const timeAwaySeconds = Math.floor((Date.now() - (data.lastSaved || Date.now())) / 1000);

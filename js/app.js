@@ -7,12 +7,6 @@ class App {
   constructor() {
     this.activeModal = null;
     this.gameSpeed = 1;
-    this.introStep = 0;
-    this.introDialogs = [
-      { speaker: "Trưởng Lão Eldrin", text: "Khụ... mừng ngài tỉnh lại, thưa Tân Thị Trưởng! Chúa Quỷ Malakor đã biến lục địa thành tro tàn. Nơi này là pháo đài cuối cùng của nhân loại." },
-      { speaker: "Trưởng Lão Eldrin", text: "Các Thợ Săn từ khắp nơi đang đổ về đây. Họ sẽ tự động ra bãi quái diệt quỷ, nhưng họ cần Quán Trọ để ngủ, Quán Ăn khi đói và Lò Rèn để sắm vũ khí!" },
-      { speaker: "Trưởng Lão Eldrin", text: "Nhiệm vụ của ngài là thu mua loot của họ, rèn trang bị xịn và mở rộng thị trấn. Cứ mỗi chu kỳ, Đêm Trăng Máu sẽ ập tới... Hãy dẫn dắt chúng tôi!" }
-    ];
   }
 
   init() {
@@ -22,22 +16,24 @@ class App {
     if (!hasSave) {
       // Starter Hunters for fresh new game
       window.gameState.hunters.push(new Hunter({
-        name: "Kael",
+        name: "Thanh Phong",
         classKey: "BERSERKER",
         rankKey: "NORMAL",
         level: 1
       }));
       window.gameState.hunters.push(new Hunter({
-        name: "Lyra",
+        name: "Tuyết Mai",
         classKey: "RANGER",
         rankKey: "RARE",
         level: 1
       }));
 
-      // Show intro tutorial
-      this.showIntro();
       window.gameState.save();
-      window.logTicker.add("🏰 Thị trấn đã sẵn sàng! Chúc Tân Thị Trưởng khởi đầu thuận lợi!", "system");
+      
+      // Open the Welcome & Town Name Setup modal on new game start
+      setTimeout(() => {
+        this.openModal('modal-welcome-init');
+      }, 150);
     }
 
     // 2. Spawn Starter Monsters in Active Zone
@@ -87,15 +83,17 @@ class App {
       // 2. Update Construction Timers
       Building.tickConstruction(deltaSeconds);
 
-      // 3. Update Invasion System
-      InvasionSystem.update(deltaSeconds);
-
-      // 3b. Update Dungeon Boss Battle
+      // 3. Update Dungeon Boss Battle
       if (typeof DungeonSystem !== 'undefined') {
         DungeonSystem.updateBattle(deltaSeconds);
       }
 
-      // 4. Render Views
+      // 4. Update Rival Leaderboard real-time progression
+      if (typeof LeaderboardSystem !== 'undefined') {
+        LeaderboardSystem.update(deltaSeconds);
+      }
+
+      // 5. Render Views
       if (window.renderer) {
         window.renderer.renderAsciiMap();
         window.renderer.updateHeader();
@@ -117,42 +115,56 @@ class App {
     else if (this.activeModal === 'modal-clinic') this.populateClinicModal();
     else if (this.activeModal === 'modal-hall') this.populateHallModal();
     else if (this.activeModal === 'modal-dungeon') this.renderDungeonTab();
+    else if (this.activeModal === 'modal-leaderboard') this.populateLeaderboardModal();
   }
 
-  showIntro() {
-    const introLayer = document.getElementById('intro-dialog-layer');
-    if (!introLayer) return;
-    introLayer.classList.remove('hidden');
-    this.introStep = 0;
-    this.renderIntroStep();
-  }
-
-  renderIntroStep() {
-    if (this.introStep >= this.introDialogs.length) {
-      document.getElementById('intro-dialog-layer').classList.add('hidden');
-      return;
+  // ==========================================
+  // WELCOME & TOWN NAME SETUP
+  // ==========================================
+  randomizeTownName() {
+    const names = [
+      "Thị Trấn Diệt Quỷ", "Pháo Đài Eldoria", "Thành Trì Ánh Sáng", 
+      "Thung Lũng Rồng Lửa", "Thánh Địa Valoria", "Thị Trấn HunterX", 
+      "Thành Cổ Bất Tử", "Trấn Khởi Nguyên", "Thành Cổ Titan", "Làng Gió Thần"
+    ];
+    const inp = document.getElementById('input-new-town-name');
+    if (inp) {
+      const filtered = names.filter(n => n !== inp.value);
+      inp.value = filtered[Math.floor(Math.random() * filtered.length)];
     }
-    const current = this.introDialogs[this.introStep];
-    document.getElementById('intro-speaker').textContent = current.speaker + ":";
-    document.getElementById('intro-text').textContent = current.text;
+  }
+
+  confirmNewTownSetup() {
+    const inp = document.getElementById('input-new-town-name');
+    const enteredName = (inp && inp.value.trim()) ? inp.value.trim() : "Thị Trấn Diệt Quỷ";
+    window.gameState.townName = enteredName;
+    window.gameState.save();
+
+    if (window.renderer) {
+      window.renderer.updateHeader();
+    }
+    this.closeAllModals();
+
+    window.logTicker.add(`🏰 Tân Thị Trưởng đã tiếp quản [${enteredName}]! Chúc thị trấn ngày càng phồn vinh!`, "system");
+    if (window.showToast) {
+      window.showToast(`Chào mừng đến với ${enteredName}! Bắt đầu hành trình diệt quái.`, 'success', '👑 TÂN THỊ TRƯỞNG');
+    }
+    if (window.soundFX) window.soundFX.playLevelUp();
   }
 
   // BIND ALL DOM EVENTS
   bindEvents() {
     const self = this;
 
-    // Intro actions
-    document.getElementById('btn-intro-next')?.addEventListener('click', () => {
-      self.introStep++;
-      self.renderIntroStep();
-    });
-    document.getElementById('btn-intro-skip')?.addEventListener('click', () => {
-      document.getElementById('intro-dialog-layer').classList.add('hidden');
-    });
-
     // Clear log
     document.getElementById('btn-clear-log')?.addEventListener('click', () => {
       window.logTicker.clear();
+    });
+
+    // Rename Hunter input Enter key
+    document.getElementById('input-rename-hunter')?.addEventListener('keyup', (e) => {
+      if (e.key === 'Enter') self.confirmRenameHunter();
+      if (e.key === 'Escape') self.closeRenameHunterModal();
     });
 
     // Building Grid click
@@ -192,6 +204,7 @@ class App {
         const tabKey = tab.getAttribute('data-tab');
         if (tabKey === 'tab-dungeon') self.openModal('modal-dungeon');
         else if (tabKey === 'tab-hunters') self.openModal('modal-hunters');
+        else if (tabKey === 'tab-leaderboard') self.openModal('modal-leaderboard');
         else if (tabKey === 'tab-storage') self.openModal('modal-storage');
         else if (tabKey === 'tab-research') self.openModal('modal-research');
         else if (tabKey === 'tab-settings') self.openModal('modal-settings');
@@ -316,12 +329,23 @@ class App {
       if (modalId === 'modal-clinic') this.populateClinicModal();
       if (modalId === 'modal-trading') this.populateTradingModal();
       if (modalId === 'modal-bounty') this.populateBountyModal();
-      if (modalId === 'modal-zone') this.populateZoneModal();
+      if (modalId === 'modal-zone') {
+        this.viewingZoneId = null;
+        this.populateZoneModal();
+      }
       if (modalId === 'modal-hunters') this.populateHuntersModal();
+      if (modalId === 'modal-leaderboard') this.populateLeaderboardModal();
       if (modalId === 'modal-storage') this.populateStorageModal();
       if (modalId === 'modal-research') this.populateResearchModal();
       if (modalId === 'modal-hall') this.populateHallModal();
-      if (modalId === 'modal-recruit') this.populateRecruitModal();
+      if (modalId === 'modal-recruit') {
+        const resultBox = document.getElementById('recruit-result-box');
+        if (resultBox) {
+          resultBox.innerHTML = '';
+          resultBox.classList.add('hidden');
+        }
+        this.populateRecruitModal();
+      }
       if (modalId === 'modal-dungeon') this.renderDungeonTab();
     }
   }
@@ -330,6 +354,14 @@ class App {
     const backdrop = document.getElementById('modal-backdrop');
     if (backdrop) backdrop.classList.add('hidden');
     document.querySelectorAll('.game-modal').forEach(m => m.classList.add('hidden'));
+
+    // Clear summon result box so it resets on next visit
+    const resultBox = document.getElementById('recruit-result-box');
+    if (resultBox) {
+      resultBox.innerHTML = '';
+      resultBox.classList.add('hidden');
+    }
+
     this.activeModal = null;
   }
 
@@ -349,8 +381,6 @@ class App {
           return `<span style="color:${color}">${c}x ${mName} (${has}/${c})</span>`;
         }).join(", ");
 
-        const fee = r.craftFee || 10;
-        const feeStr = CONFIG.formatNumber ? CONFIG.formatNumber(fee) : fee.toLocaleString();
         const costStr = CONFIG.formatNumber ? CONFIG.formatNumber(r.costGold) : r.costGold.toLocaleString();
 
         html += `
@@ -358,11 +388,10 @@ class App {
             <div class="item-info" style="flex:1;">
               <div class="item-name rarity-${r.rarity}" style="font-size:13px;">${r.icon} ${r.name}</div>
               <div class="item-stats" style="font-size:11px; margin-top:2px;">⚡ <b>+${r.atk}</b> Sát Thương | Yêu cầu: <b>Lv.${r.reqLvl}</b></div>
-              <div class="item-cost" style="font-size:11px; margin-top:3px;">📦 Nguyên liệu trong kho: ${matReq}</div>
-              <div style="font-size:11px; margin-top:2px; color:#b0bec5;">Phí chế tạo: 💰${feeStr} GOLD | Giá thợ săn tự mua: <b style="color:#ffd700;">💰${costStr} GOLD</b></div>
+              <div class="item-cost" style="font-size:11px; margin-top:3px;">📦 Cần: ${matReq}</div>
             </div>
-            <div style="text-align:right; margin-left:10px;">
-              <span style="font-size:10px; font-weight:bold; color:#39ff14; background:rgba(57,255,20,0.1); padding:4px 8px; border-radius:4px; border:1px solid rgba(57,255,20,0.3);">🤖 TỰ ĐỘNG MUA</span>
+            <div style="font-size:13px; font-weight:bold; color:#ffd700; display:flex; align-items:center; justify-content:center; white-space:nowrap; padding:6px 10px; background:rgba(255,215,0,0.08); border-radius:4px; border:1px solid rgba(255,215,0,0.25);">
+              💰${costStr} GOLD
             </div>
           </div>
         `;
@@ -376,8 +405,6 @@ class App {
           return `<span style="color:${color}">${c}x ${mName} (${has}/${c})</span>`;
         }).join(", ");
 
-        const fee = r.craftFee || 8;
-        const feeStr = CONFIG.formatNumber ? CONFIG.formatNumber(fee) : fee.toLocaleString();
         const costStr = CONFIG.formatNumber ? CONFIG.formatNumber(r.costGold) : r.costGold.toLocaleString();
 
         html += `
@@ -385,11 +412,10 @@ class App {
             <div class="item-info" style="flex:1;">
               <div class="item-name rarity-${r.rarity}" style="font-size:13px;">${r.icon} ${r.name}</div>
               <div class="item-stats" style="font-size:11px; margin-top:2px;">🛡️ <b>+${r.def}</b> DEF | ❤️ <b>+${r.hp}</b> Máu | Yêu cầu: <b>Lv.${r.reqLvl}</b></div>
-              <div class="item-cost" style="font-size:11px; margin-top:3px;">📦 Nguyên liệu trong kho: ${matReq}</div>
-              <div style="font-size:11px; margin-top:2px; color:#b0bec5;">Phí chế tạo: 💰${feeStr} GOLD | Giá thợ săn tự mua: <b style="color:#ffd700;">💰${costStr} GOLD</b></div>
+              <div class="item-cost" style="font-size:11px; margin-top:3px;">📦 Cần: ${matReq}</div>
             </div>
-            <div style="text-align:right; margin-left:10px;">
-              <span style="font-size:10px; font-weight:bold; color:#39ff14; background:rgba(57,255,20,0.1); padding:4px 8px; border-radius:4px; border:1px solid rgba(57,255,20,0.3);">🤖 TỰ ĐỘNG MUA</span>
+            <div style="font-size:13px; font-weight:bold; color:#ffd700; display:flex; align-items:center; justify-content:center; white-space:nowrap; padding:6px 10px; background:rgba(255,215,0,0.08); border-radius:4px; border:1px solid rgba(255,215,0,0.25);">
+              💰${costStr} GOLD
             </div>
           </div>
         `;
@@ -403,8 +429,6 @@ class App {
           return `<span style="color:${color}">${c}x ${mName} (${has}/${c})</span>`;
         }).join(", ");
 
-        const fee = r.craftFee || 10;
-        const feeStr = CONFIG.formatNumber ? CONFIG.formatNumber(fee) : fee.toLocaleString();
         const costStr = CONFIG.formatNumber ? CONFIG.formatNumber(r.costGold) : r.costGold.toLocaleString();
 
         html += `
@@ -412,11 +436,10 @@ class App {
             <div class="item-info" style="flex:1;">
               <div class="item-name rarity-${r.rarity}" style="font-size:13px;">${r.icon} ${r.name}</div>
               <div class="item-stats" style="font-size:11px; margin-top:2px;">⚡ <b>+${r.atk}</b> ATK | 💥 <b>+${r.crit}%</b> Crit | Yêu cầu: <b>Lv.${r.reqLvl}</b></div>
-              <div class="item-cost" style="font-size:11px; margin-top:3px;">📦 Nguyên liệu trong kho: ${matReq}</div>
-              <div style="font-size:11px; margin-top:2px; color:#b0bec5;">Phí chế tạo: 💰${feeStr} GOLD | Giá thợ săn tự mua: <b style="color:#ffd700;">💰${costStr} GOLD</b></div>
+              <div class="item-cost" style="font-size:11px; margin-top:3px;">📦 Cần: ${matReq}</div>
             </div>
-            <div style="text-align:right; margin-left:10px;">
-              <span style="font-size:10px; font-weight:bold; color:#39ff14; background:rgba(57,255,20,0.1); padding:4px 8px; border-radius:4px; border:1px solid rgba(57,255,20,0.3);">🤖 TỰ ĐỘNG MUA</span>
+            <div style="font-size:13px; font-weight:bold; color:#ffd700; display:flex; align-items:center; justify-content:center; white-space:nowrap; padding:6px 10px; background:rgba(255,215,0,0.08); border-radius:4px; border:1px solid rgba(255,215,0,0.25);">
+              💰${costStr} GOLD
             </div>
           </div>
         `;
@@ -430,8 +453,6 @@ class App {
           return `<span style="color:${color}">${c}x ${mName} (${has}/${c})</span>`;
         }).join(", ");
 
-        const fee = r.craftFee || 10;
-        const feeStr = CONFIG.formatNumber ? CONFIG.formatNumber(fee) : fee.toLocaleString();
         const costStr = CONFIG.formatNumber ? CONFIG.formatNumber(r.costGold) : r.costGold.toLocaleString();
 
         html += `
@@ -439,11 +460,10 @@ class App {
             <div class="item-info" style="flex:1;">
               <div class="item-name rarity-${r.rarity}" style="font-size:13px;">${r.icon} ${r.name}</div>
               <div class="item-stats" style="font-size:11px; margin-top:2px;">🛡️ <b>+${r.def}</b> DEF | ❤️ <b>+${r.hp}</b> HP | 💥 <b>+${r.critDmg}%</b> Sát Thương Chí Mạng | Yêu cầu: <b>Lv.${r.reqLvl}</b></div>
-              <div class="item-cost" style="font-size:11px; margin-top:3px;">📦 Nguyên liệu trong kho: ${matReq}</div>
-              <div style="font-size:11px; margin-top:2px; color:#b0bec5;">Phí chế tạo: 💰${feeStr} GOLD | Giá thợ săn tự mua: <b style="color:#ffd700;">💰${costStr} GOLD</b></div>
+              <div class="item-cost" style="font-size:11px; margin-top:3px;">📦 Cần: ${matReq}</div>
             </div>
-            <div style="text-align:right; margin-left:10px;">
-              <span style="font-size:10px; font-weight:bold; color:#39ff14; background:rgba(57,255,20,0.1); padding:4px 8px; border-radius:4px; border:1px solid rgba(57,255,20,0.3);">🤖 TỰ ĐỘNG MUA</span>
+            <div style="font-size:13px; font-weight:bold; color:#ffd700; display:flex; align-items:center; justify-content:center; white-space:nowrap; padding:6px 10px; background:rgba(255,215,0,0.08); border-radius:4px; border:1px solid rgba(255,215,0,0.25);">
+              💰${costStr} GOLD
             </div>
           </div>
         `;
@@ -457,8 +477,6 @@ class App {
           return `<span style="color:${color}">${c}x ${mName} (${has}/${c})</span>`;
         }).join(", ");
 
-        const fee = r.craftFee || 10;
-        const feeStr = CONFIG.formatNumber ? CONFIG.formatNumber(fee) : fee.toLocaleString();
         const costStr = CONFIG.formatNumber ? CONFIG.formatNumber(r.costGold) : r.costGold.toLocaleString();
 
         html += `
@@ -466,11 +484,10 @@ class App {
             <div class="item-info" style="flex:1;">
               <div class="item-name rarity-${r.rarity}" style="font-size:13px;">${r.icon} ${r.name}</div>
               <div class="item-stats" style="font-size:11px; margin-top:2px;">⚡ <b>+${r.atk}</b> ATK | 🎯 <b>+${r.critRate}%</b> Tỉ Lệ Chí Mạng | Yêu cầu: <b>Lv.${r.reqLvl}</b></div>
-              <div class="item-cost" style="font-size:11px; margin-top:3px;">📦 Nguyên liệu trong kho: ${matReq}</div>
-              <div style="font-size:11px; margin-top:2px; color:#b0bec5;">Phí chế tạo: 💰${feeStr} GOLD | Giá thợ săn tự mua: <b style="color:#ffd700;">💰${costStr} GOLD</b></div>
+              <div class="item-cost" style="font-size:11px; margin-top:3px;">📦 Cần: ${matReq}</div>
             </div>
-            <div style="text-align:right; margin-left:10px;">
-              <span style="font-size:10px; font-weight:bold; color:#39ff14; background:rgba(57,255,20,0.1); padding:4px 8px; border-radius:4px; border:1px solid rgba(57,255,20,0.3);">🤖 TỰ ĐỘNG MUA</span>
+            <div style="font-size:13px; font-weight:bold; color:#ffd700; display:flex; align-items:center; justify-content:center; white-space:nowrap; padding:6px 10px; background:rgba(255,215,0,0.08); border-radius:4px; border:1px solid rgba(255,215,0,0.25);">
+              💰${costStr} GOLD
             </div>
           </div>
         `;
@@ -487,22 +504,23 @@ class App {
     const b = window.gameState.buildings.inn;
     const innLvl = b.level || 1;
     const innBeds = 3 + Math.floor(innLvl * 0.5);
-    const rate = typeof Hunter !== 'undefined' && Hunter.getInnRecoveryRate ? Hunter.getInnRecoveryRate(innLvl) : (12 + (innLvl - 1) * 3);
+    const rate = typeof Hunter !== 'undefined' && Hunter.getInnRecoveryRate ? Hunter.getInnRecoveryRate(innLvl) : (4 + (innLvl - 1) * 1);
+    const speedPerSec = rate * 2;
     const minFee = 35 + 8 + (innLvl - 1) * 15; // Lv.1 Hunter min fee
     const guests = (window.gameState.hunters || []).filter(h => h.state === 'RESTING').length;
 
     const elBeds = document.getElementById('inn-beds');
     if (elBeds) elBeds.textContent = `${guests} / ${innBeds} Giường`;
     const elSpeed = document.getElementById('inn-speed');
-    if (elSpeed) elSpeed.textContent = `+${rate} Thể lực/giây`;
+    if (elSpeed) elSpeed.textContent = `+${speedPerSec} Thể lực/giây`;
     const elGuests = document.getElementById('inn-active-guests');
     if (elGuests) elGuests.textContent = `${guests} Thợ săn đang ngủ`;
     const elRev = document.getElementById('inn-revenue');
-    if (elRev) elRev.textContent = `💰${CONFIG.formatNumber(b.revenue || 0)}`;
+    if (elRev) elRev.textContent = `💰${CONFIG.formatNumber(b.revenue || 0)} GOLD`;
 
     const descEl = document.querySelector('#modal-inn .modal-desc');
     if (descEl) {
-      descEl.innerHTML = `Nơi thợ săn nghỉ ngơi hồi phục Thể Lực (<b>+${rate} Thể lực/giây</b>) cho đến khi đạt đủ 100%. Thu phí phòng nghỉ từ <b>💰${minFee}g/lượt</b> (Tăng theo cấp độ & phẩm cấp Thợ Săn).`;
+      descEl.innerHTML = `Nơi thợ săn nghỉ ngơi hồi phục Thể Lực (<b>+${speedPerSec} Thể lực/giây</b>) cho đến khi đạt đủ 100%. Thu phí phòng nghỉ từ <b>💰${minFee} GOLD/lượt</b> (Tăng theo cấp độ & phẩm cấp Thợ Săn).`;
     }
     this.updateBuildingUpgradeButton('inn', 'upgrade-box-inn');
   }
@@ -515,7 +533,7 @@ class App {
         <div class="item-info">
           <div class="item-name" style="color:#39ff14;">⚡ CHẾ ĐỘ BẾP TRƯỞNG TỰ ĐỘNG: [ĐANG BẬT]</div>
           <div style="font-size:11px; color:#d0f0c0;">
-            Khi thợ săn đói (Hunger &lt; 30%), Quán Ăn sẽ <b>tự động chọn món cao cấp nhất</b> có đủ nguyên liệu để nấu, phục vụ thợ săn và thu tiền vàng về Ngân Khố!
+            Khi thợ săn đói (Hunger &lt; 30%), Quán Ăn sẽ <b>tự động chọn món cao cấp nhất</b> có đủ nguyên liệu để phục vụ và thu tiền vàng về Ngân Khố. <i>(Buff không cộng dồn ATK, khi ăn lại sẽ làm mới thời gian ~4 phút và lấy chỉ số món cao nhất).</i>
           </div>
         </div>
       </div>
@@ -529,15 +547,19 @@ class App {
         return `<span style="color:${color}">${c}x ${mName} (${has}/${c})</span>`;
       }).join(", ");
 
-      const fee = f.craftFee || Math.floor(f.costGold * 0.3);
+      const costStr = CONFIG.formatNumber ? CONFIG.formatNumber(f.costGold) : f.costGold.toLocaleString();
+
       html += `
-        <div class="item-card">
-          <div class="item-info">
-            <div class="item-name">${f.icon} ${f.name}</div>
-            <div class="item-stats">🍖 Hồi ${f.hungerRestore}% Đói | Buff: +${f.buffAtk} ATK</div>
-            <div class="item-cost">Cần: ${matReq} | Phí: 💰${fee}g | Bán: <b style="color:#ffd700">💰${f.costGold}g</b></div>
+        <div class="item-card" style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; margin-bottom:8px;">
+          <div class="item-info" style="flex:1;">
+            <div class="item-name" style="font-size:13px; color:#ffd700;">${f.icon} ${f.name}</div>
+            <div class="item-stats" style="font-size:11px; margin-top:2px;">🍖 Hồi <b>${f.hungerRestore}%</b> Đói | ⚡ Buff: <b style="color:#39ff14;">+${f.buffAtk} ATK</b> <span style="color:#00e5ff; font-size:10px;">(⏱️ Duy trì ~4 phút)</span></div>
+            <div style="font-size:11px; color:#88aa99; margin-top:2px; font-style:italic;">"${f.desc || 'Món ngon tiếp sức cho thợ săn'}"</div>
+            <div class="item-cost" style="font-size:11px; margin-top:3px;">📦 Cần: ${matReq}</div>
           </div>
-          <button class="btn-primary btn-xs" onclick="EconomySystem.cookFood('${f.id}')">Nấu (💰${fee}g)</button>
+          <div style="font-size:13px; font-weight:bold; color:#ffd700; display:flex; align-items:center; justify-content:center; white-space:nowrap; padding:6px 10px; background:rgba(255,215,0,0.08); border-radius:4px; border:1px solid rgba(255,215,0,0.25); margin-left:10px;">
+            💰${costStr} GOLD
+          </div>
         </div>
       `;
     });
@@ -567,15 +589,20 @@ class App {
         return `<span style="color:${color}">${c}x ${mName} (${has}/${c})</span>`;
       }).join(", ");
 
-      const fee = p.craftFee || Math.floor(p.costGold * 0.35);
+      const costStr = CONFIG.formatNumber ? CONFIG.formatNumber(p.costGold) : p.costGold.toLocaleString();
+      const healText = p.healHp >= 9999 ? '<b>HỒI SINH ĐẦY MÁU</b>' : `+<b>${CONFIG.formatNumber ? CONFIG.formatNumber(p.healHp) : p.healHp}</b> HP`;
+
       html += `
-        <div class="item-card">
-          <div class="item-info">
-            <div class="item-name">${p.icon} ${p.name}</div>
-            <div class="item-stats">❤️ Hồi ${p.healHp >= 9999 ? 'HỒI SINH ĐẦY MÁU' : `+${p.healHp} HP`} | Yêu cầu: Lv.${p.reqLvl}</div>
-            <div class="item-cost">Cần: ${matReq} | Phí: 💰${fee}g | Bán: <b style="color:#ffd700">💰${p.costGold}g</b></div>
+        <div class="item-card" style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; margin-bottom:8px;">
+          <div class="item-info" style="flex:1;">
+            <div class="item-name" style="font-size:13px; color:#ff66aa;">${p.icon} ${p.name}</div>
+            <div class="item-stats" style="font-size:11px; margin-top:2px;">❤️ Hồi: <span style="color:#ff3366;">${healText}</span> | Yêu cầu: <b>Lv.${p.reqLvl}</b></div>
+            <div style="font-size:11px; color:#c08899; margin-top:2px; font-style:italic;">"${p.desc || 'Dược phẩm cứu thương'}"</div>
+            <div class="item-cost" style="font-size:11px; margin-top:3px;">📦 Cần: ${matReq}</div>
           </div>
-          <button class="btn-primary btn-xs" onclick="EconomySystem.brewPotion('${p.id}')">Bào Chế (💰${fee}g)</button>
+          <div style="font-size:13px; font-weight:bold; color:#ffd700; display:flex; align-items:center; justify-content:center; white-space:nowrap; padding:6px 10px; background:rgba(255,215,0,0.08); border-radius:4px; border:1px solid rgba(255,215,0,0.25); margin-left:10px;">
+            💰${costStr} GOLD
+          </div>
         </div>
       `;
     });
@@ -922,71 +949,129 @@ class App {
     this.populateBountyModal();
   }
 
+  setViewingZone(zoneId) {
+    this.viewingZoneId = zoneId;
+    this.populateZoneModal();
+  }
+
   populateZoneModal() {
     const list = document.getElementById('zone-list');
     if (!list) return;
-    const currentDiff = CONFIG.DIFFICULTIES.find(d => d.id === window.gameState.currentDifficulty) || CONFIG.DIFFICULTIES[0];
-    const diffMul = currentDiff.hpMul || 1.0;
     const townPower = (window.gameState.hunters || []).reduce((s, h) => s + (h.getCombatPower ? h.getCombatPower() : 0), 0);
     const townStr = CONFIG.formatNumber ? CONFIG.formatNumber(townPower) : townPower.toLocaleString();
     const hunterCount = window.gameState.hunters ? window.gameState.hunters.length : 0;
 
-    let html = `
-      <div style="margin-bottom:10px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-          <span style="font-weight:bold; font-size:12px; color:var(--accent-cyan);">⚡ CHỌN ĐỘ KHÓ VÙNG SĂN:</span>
-          <span style="font-size:11px; color:#ffd700;">👑 Lực Chiến Toàn Thị Trấn (${hunterCount} Thợ Săn): <b>${townStr} CP</b></span>
-        </div>
-        <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:6px;">
-    `;
+    // STEP 2: IF A MAP IS SELECTED -> SHOW DIFFICULTY SELECTION & STRICT CP REQUIREMENT
+    if (this.viewingZoneId) {
+      const z = CONFIG.ZONES.find(x => x.id === this.viewingZoneId);
+      if (!z) {
+        this.viewingZoneId = null;
+        return this.populateZoneModal();
+      }
 
-    // Render Difficulties with scaled CP requirements
-    CONFIG.DIFFICULTIES.forEach(d => {
-      const isSelected = d.id === window.gameState.currentDifficulty;
-      html += `
-        <button class="btn-secondary" style="border-color:${isSelected ? d.color : 'var(--border-color)'}; background:${isSelected ? 'rgba(255,255,255,0.08)' : 'var(--bg-primary)'}; padding:6px 8px; text-align:left; position:relative;" onclick="window.app.selectDifficulty('${d.id}')">
-          <div style="color:${d.color}; font-weight:bold; font-size:11px; display:flex; justify-content:space-between;">
-            <span>${isSelected ? '● ' : '○ '}${d.name}</span>
-            <span style="font-size:10px; color:${d.color};">x${d.hpMul} CP</span>
+      const monsterNames = z.monsters.map(m => m.name).join(', ');
+      const dropsHtml = (z.drops || []).map(matId => {
+        const it = CONFIG.ITEMS[matId] || { name: matId, icon: "📦" };
+        return `<span style="background:rgba(0,0,0,0.35); border:1px solid #334455; padding:1px 5px; border-radius:3px; font-size:10px; margin-right:4px;">${it.icon} ${it.name}</span>`;
+      }).join('');
+
+      let html = `
+        <div style="margin-bottom:10px;">
+          <button class="btn-secondary btn-xs" style="margin-bottom:8px; padding:4px 8px; font-size:11px;" onclick="window.app.setViewingZone(null)">
+            ⬅ Quay Lại Danh Sách Bãi Săn
+          </button>
+          <div class="item-card" style="background:#131c26; border-color:#2a4460; padding:10px; margin-bottom:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div style="font-size:14px; font-weight:bold; color:#ffd700;">${z.icon} ${z.name}</div>
+              <span style="font-size:10px; color:#00e5ff; background:rgba(0,229,255,0.1); padding:2px 6px; border-radius:4px; border:1px solid rgba(0,229,255,0.3);">
+                Yêu cầu Thị Trấn: Cấp ${z.reqTownLvl}
+              </span>
+            </div>
+            <div style="font-size:11px; color:#b0bec5; margin:3px 0;">${z.desc}</div>
+            <div style="font-size:10px; color:var(--text-muted);">👾 Quái vật: ${monsterNames}</div>
+            <div style="font-size:10px; margin-top:2px;">🎁 Rơi đồ: ${dropsHtml}</div>
           </div>
-          <div style="font-size:9px; color:var(--text-muted); margin-top:2px;">${d.desc}</div>
-        </button>
-      `;
-    });
 
-    html += `
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span style="font-weight:bold; font-size:12px; color:var(--accent-cyan);">⚡ CHỌN ĐỘ KHÓ XUẤT QUÂN:</span>
+            <span style="font-size:11px; color:#ffd700;">👑 Lực Chiến Toàn Thị Trấn: <b>${townStr} CP</b></span>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:8px;">
+      `;
+
+      CONFIG.DIFFICULTIES.forEach(d => {
+        const diffMul = d.hpMul || 1.0;
+        const effectiveReqPower = Math.floor((z.reqPower || 500) * diffMul);
+        const isSafe = townPower >= effectiveReqPower;
+        const isCurrent = (window.gameState.currentZoneId === z.id && window.gameState.currentDifficulty === d.id);
+        const reqStr = CONFIG.formatNumber ? CONFIG.formatNumber(effectiveReqPower) : effectiveReqPower.toLocaleString();
+        const diffCp = effectiveReqPower - townPower;
+        const diffCpStr = CONFIG.formatNumber ? CONFIG.formatNumber(diffCp) : diffCp.toLocaleString();
+
+        html += `
+          <div class="item-card" style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border-color:${isCurrent ? '#39ff14' : (isSafe ? d.color : '#591624')}; background:${isCurrent ? 'rgba(57,255,20,0.06)' : (isSafe ? 'rgba(0,0,0,0.3)' : 'rgba(30,10,15,0.4)')};">
+            <div style="flex:1;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span style="color:${d.color}; font-weight:bold; font-size:12px;">${d.name}</span>
+                <span style="font-size:10px; color:${isSafe ? '#39ff14' : '#ff5577'}; font-weight:bold; background:rgba(0,0,0,0.4); padding:2px 6px; border-radius:3px; border:1px solid ${isSafe ? '#39ff14' : '#ff5577'};">
+                  ${isSafe ? '🟢 ĐỦ LỰC CHIẾN' : `🔒 THIẾU ${diffCpStr} CP`}
+                </span>
+              </div>
+              <div style="font-size:10px; color:var(--text-muted); margin-top:2px;">${d.desc}</div>
+              <div style="font-size:11px; margin-top:3px; color:${isSafe ? '#b0bec5' : '#ff8899'};">
+                Yêu cầu Lực Chiến: <b style="color:${isSafe ? '#ffd700' : '#ff5577'};">${reqStr} CP</b> (Hiện có: ${townStr} CP)
+              </div>
+            </div>
+            <div style="margin-left:10px; min-width:115px; text-align:right;">
+              ${!isSafe 
+                ? `<button class="btn-secondary btn-block" disabled style="opacity:0.5; cursor:not-allowed; border-color:#591624; color:#ff5577; font-size:11px; padding:6px 8px;">🔒 Khóa (Thiếu CP)</button>`
+                : `<button class="btn-primary btn-block" style="font-size:11px; padding:6px 8px; ${isCurrent ? 'background:#2e593a; border-color:#39ff14;' : ''}" onclick="window.app.deployToZone('${z.id}', '${d.id}')">${isCurrent ? '✅ Đang Săn' : '⚔️ Xuất Quân'}</button>`
+              }
+            </div>
+          </div>
+        `;
+      });
+
+      html += `
+          </div>
         </div>
+      `;
+      list.innerHTML = html;
+      return;
+    }
+
+    // STEP 1: SHOW LIST OF HUNTING MAPS
+    let html = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <span style="font-weight:bold; font-size:12px; color:var(--accent-green);">🗺️ BƯỚC 1: CHỌN BÃI SĂN (MAP):</span>
+        <span style="font-size:11px; color:#ffd700;">👑 Lực Chiến Toàn Thị Trấn (${hunterCount} Thợ Săn): <b>${townStr} CP</b></span>
       </div>
       <div style="background:rgba(255,215,0,0.08); border:1px solid rgba(255,215,0,0.3); border-radius:6px; padding:6px 10px; margin-bottom:8px; font-size:11px; display:flex; justify-content:space-between; align-items:center;">
         <span>👑 <b>Quái Tinh Anh Hoàng Kim</b>:</span>
         <span style="color:#ffd700;">8% Tỉ lệ xuất hiện, rơi <b>x5 Vàng</b> & <b>+1~2 💠 Ngọc</b></span>
       </div>
-      <div style="font-weight:bold; font-size:12px; color:var(--accent-green); margin-bottom:4px;">🗺️ DANH SÁCH BÃI SĂN (YÊU CẦU LỰC CHIẾN TOÀN THỊ TRẤN):</div>
     `;
 
-    // Render Zones with difficulty-scaled recommended CP for the whole town
     CONFIG.ZONES.forEach(z => {
       const isCurrent = z.id === window.gameState.currentZoneId;
       const isLocked = window.gameState.townLevel < z.reqTownLvl;
       const monsterNames = z.monsters.map(m => m.name).join(', ');
       const baseReqPower = z.reqPower || 500;
-      const effectiveReqPower = Math.floor(baseReqPower * diffMul);
-      const isSafe = townPower >= effectiveReqPower;
-      const reqStr = CONFIG.formatNumber ? CONFIG.formatNumber(effectiveReqPower) : effectiveReqPower.toLocaleString();
+      const reqStr = CONFIG.formatNumber ? CONFIG.formatNumber(baseReqPower) : baseReqPower.toLocaleString();
 
-      // Drops HTML tags
       const dropsHtml = (z.drops || []).map(matId => {
         const it = CONFIG.ITEMS[matId] || { name: matId, icon: "📦" };
         return `<span style="background:rgba(0,0,0,0.35); border:1px solid #334455; padding:1px 5px; border-radius:3px; font-size:10px; margin-right:4px;">${it.icon} ${it.name}</span>`;
       }).join('');
 
       html += `
-        <div class="item-card ${isCurrent ? 'can-craft' : ''}" style="margin-bottom:8px; padding:8px 10px;">
+        <div class="item-card ${isCurrent ? 'can-craft' : ''}" style="margin-bottom:8px; padding:8px 10px; cursor:${isLocked ? 'not-allowed' : 'pointer'};" ${!isLocked ? `onclick="window.app.setViewingZone('${z.id}')"` : ''}>
           <div class="item-info" style="flex:1;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
               <div class="item-name" style="color: ${isCurrent ? '#39ff14' : '#ffffff'}; font-size:12px; font-weight:bold;">${z.icon} ${z.name}</div>
-              <span style="font-size:10px; color:${isSafe ? '#39ff14' : '#ff5577'}; font-weight:bold; background:rgba(0,0,0,0.4); padding:2px 6px; border-radius:4px; border:1px solid ${isSafe ? '#39ff14' : '#ff5577'};">
-                ⚔️ Đề xuất Thị Trấn (${currentDiff.name.split(' ')[0]}): ${reqStr} CP ${isSafe ? '🟢 Đủ Lực' : '⚠️ Thiếu CP'}
+              <span style="font-size:10px; color:#ffd700; font-weight:bold; background:rgba(0,0,0,0.4); padding:2px 6px; border-radius:4px; border:1px solid #443311;">
+                ⚔️ Lực Chiến Cơ Bản: ${reqStr} CP
               </span>
             </div>
             <div class="item-cost" style="margin:2px 0;">${z.desc}</div>
@@ -998,39 +1083,44 @@ class App {
               Yêu cầu Thị Trấn: Cấp ${z.reqTownLvl} (Hiện tại: Cấp ${window.gameState.townLevel})
             </div>
           </div>
-          <button class="btn-primary" ${isLocked ? 'disabled' : ''} style="margin-left:8px; min-width:80px;" onclick="window.app.selectZone('${z.id}')">
-            ${isLocked ? '🔒 Khóa' : (isCurrent ? '✅ Đang Săn' : 'Xuất Quân')}
-          </button>
+          <div style="margin-left:8px; min-width:90px; text-align:right;">
+            ${isLocked 
+              ? `<button class="btn-secondary btn-block" disabled style="opacity:0.6; font-size:11px; padding:6px 8px;">🔒 Khóa (Cấp ${z.reqTownLvl})</button>` 
+              : `<button class="btn-primary btn-block" style="font-size:11px; padding:6px 8px; ${isCurrent ? 'background:#2e593a; border-color:#39ff14;' : ''}" onclick="event.stopPropagation(); window.app.setViewingZone('${z.id}')">${isCurrent ? '✅ Đang Săn' : 'Chọn Bãi ➔'}</button>`
+            }
+          </div>
         </div>
       `;
     });
     list.innerHTML = html;
   }
 
-  selectDifficulty(diffId) {
-    window.gameState.currentDifficulty = diffId;
-    this.spawnMonstersForZone(window.gameState.currentZoneId);
-    const d = CONFIG.DIFFICULTIES.find(x => x.id === diffId);
-    window.logTicker.add(`⚡ Đã chuyển độ khó vùng săn sang [${d.name}]!`, 'system');
-    this.populateZoneModal();
-  }
-
-  selectZone(zoneId) {
+  deployToZone(zoneId, diffId) {
     const z = CONFIG.ZONES.find(x => x.id === zoneId);
-    const d = CONFIG.DIFFICULTIES.find(x => x.id === window.gameState.currentDifficulty);
-    const diffMul = d?.hpMul || 1.0;
-    const effectiveReqPower = Math.floor((z?.reqPower || 500) * diffMul);
+    const d = CONFIG.DIFFICULTIES.find(x => x.id === diffId);
+    if (!z || !d) return;
+
+    const diffMul = d.hpMul || 1.0;
+    const effectiveReqPower = Math.floor((z.reqPower || 500) * diffMul);
     const townPower = (window.gameState.hunters || []).reduce((s, h) => s + (h.getCombatPower ? h.getCombatPower() : 0), 0);
 
+    // STRICT CP REQUIREMENT: Block completely if power is insufficient
     if (townPower < effectiveReqPower) {
-      const confirmMsg = `⚠️ CẢNH BÁO NGUY HIỂM:\nLực Chiến Toàn Thị Trấn (${CONFIG.formatNumber ? CONFIG.formatNumber(townPower) : townPower} CP) chưa đạt mức Đề Xuất (${CONFIG.formatNumber ? CONFIG.formatNumber(effectiveReqPower) : effectiveReqPower} CP) của [${z?.name}] (${d?.name})!\n\nThợ săn có nguy cơ tử trận liên tục. Bạn có chắc chắn muốn Xuất Quân?`;
-      if (!confirm(confirmMsg)) return;
+      const diff = effectiveReqPower - townPower;
+      const diffStr = CONFIG.formatNumber ? CONFIG.formatNumber(diff) : diff.toLocaleString();
+      const reqStr = CONFIG.formatNumber ? CONFIG.formatNumber(effectiveReqPower) : effectiveReqPower.toLocaleString();
+      const townStr = CONFIG.formatNumber ? CONFIG.formatNumber(townPower) : townPower.toLocaleString();
+      alert(`⛔ CHƯA ĐỦ ĐIỀU KIỆN LỰC CHIẾN:\n\nTổng Lực Chiến Thị Trấn (${townStr} CP) chưa đạt yêu cầu tối thiểu (${reqStr} CP) của [${z.name}] - [${d.name}]!\n\nBạn còn thiếu ${diffStr} CP. Hãy cường hóa trang bị hoặc chiêu mộ thêm thợ săn để mở khóa độ khó này.`);
+      return;
     }
 
     window.gameState.currentZoneId = zoneId;
+    window.gameState.currentDifficulty = diffId;
     this.spawnMonstersForZone(zoneId);
-    document.getElementById('txt-current-zone').textContent = `🗺️ ${z.icon} [${z.name}] (${d.name})`;
-    window.logTicker.add(`🗺️ Đã chuyển toàn bộ thợ săn sang bãi săn [${z.name}]!`, 'system');
+    const zBadge = document.getElementById('txt-current-zone');
+    if (zBadge) zBadge.textContent = `🗺️ ${z.icon} [${z.name}] (${d.name})`;
+    window.logTicker.add(`🗺️ Đã xuất quân toàn bộ thợ săn sang [${z.name}] - Độ khó [${d.name}]!`, 'system');
+    if (window.showToast) window.showToast(`Xuất quân thành công sang [${z.name}] (${d.name})!`, 'success', '🗺️ XUẤT QUÂN BÃI SĂN');
     this.closeAllModals();
   }
 
@@ -1051,21 +1141,29 @@ class App {
       </div>
     `;
 
-    // Sort hunters by combat power descending
+    // Sort hunters strictly by combat power descending
     const sortedHunters = [...window.gameState.hunters].sort((a, b) => (b.getCombatPower ? b.getCombatPower() : 0) - (a.getCombatPower ? a.getCombatPower() : 0));
 
-    sortedHunters.forEach(h => {
+    sortedHunters.forEach((h, index) => {
       const rank = CONFIG.HUNTER_RANKS[h.rankKey];
       const cls = CONFIG.HUNTER_CLASSES[h.classKey];
       const starTxt = h.reincarnation > 0 ? `<span style="color:#ffd700;">${'⭐'.repeat(h.reincarnation)}</span> ` : '';
       const cp = h.getCombatPower ? h.getCombatPower() : 0;
       const cpStr = CONFIG.formatNumber(cp);
 
+      let medal = `<span style="font-size:10px; color:var(--text-muted); font-weight:bold; margin-right:4px;">#${index + 1}</span>`;
+      if (index === 0) medal = `<span style="font-size:12px; margin-right:4px;" title="Top 1 Lực Chiến">🥇</span>`;
+      else if (index === 1) medal = `<span style="font-size:12px; margin-right:4px;" title="Top 2 Lực Chiến">🥈</span>`;
+      else if (index === 2) medal = `<span style="font-size:12px; margin-right:4px;" title="Top 3 Lực Chiến">🥉</span>`;
+
       html += `
         <div class="item-card" style="align-items:center; gap:8px;">
           <div class="item-info" onclick="window.app.openHunterDetail('${h.id}')" style="cursor:pointer; flex:1;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-              <div class="item-name" style="color:${rank.color};">${cls.icon} ${starTxt}${h.name} [Lv.${h.level}] (${rank.name})</div>
+              <div class="item-name" style="color:${rank.color}; display:flex; align-items:center;">
+                ${medal}
+                <span>${cls.icon} ${starTxt}${h.name} [Lv.${h.level}] (${rank.name})</span>
+              </div>
               <span style="color:#ffaa00; font-weight:bold; font-size:11px; background:rgba(255,170,0,0.15); padding:2px 6px; border-radius:3px; border:1px solid rgba(255,170,0,0.3);" title="Lực Chiến: ${CONFIG.formatNumber(cp)} CP">⚔️ ${cpStr} CP</span>
             </div>
             <div class="item-stats">❤️ ${CONFIG.formatNumber(Math.round(h.hp))}/${CONFIG.formatNumber(h.maxHp)} | ⚡ ATK: ${CONFIG.formatNumber(h.getTotalAtk())} | 🛡️ DEF: ${CONFIG.formatNumber(h.getTotalDef())}</div>
@@ -1089,71 +1187,156 @@ class App {
     list.innerHTML = html;
   }
 
+  // ==========================================
+  // BẢNG XẾP HẠNG TOP 100 SERVER (LEADERBOARD)
+  // ==========================================
+  populateLeaderboardModal() {
+    if (typeof LeaderboardSystem === 'undefined') return;
+    const { rankings, top100List, playerRank, playerPower, powerGapToTop100, totalParticipants } = LeaderboardSystem.getFullRankings();
+
+    const bannerEl = document.getElementById('leaderboard-player-banner');
+    const listEl = document.getElementById('leaderboard-list-container');
+    if (!bannerEl || !listEl) return;
+
+    let rankBadge = `<span style="color:#00e5ff; font-weight:bold; font-size:13px;">#${playerRank}</span>`;
+    let rankGlow = "rgba(0, 229, 255, 0.3)";
+    let extraStatus = "";
+
+    if (playerRank === 1) {
+      rankBadge = `<span style="color:#ffd700; font-weight:bold; font-size:13.5px;">🥇 TOP 1 THẾ GIỚI</span>`;
+      rankGlow = "rgba(255, 215, 0, 0.6)";
+      extraStatus = `<span style="color:#ffd700; font-size:10.5px;">👑 Bạn đang là Bá Chủ Toàn Server!</span>`;
+    } else if (playerRank === 2) {
+      rankBadge = `<span style="color:#e0e0e0; font-weight:bold; font-size:13.5px;">🥈 TOP 2 THẾ GIỚI</span>`;
+      rankGlow = "rgba(224, 224, 224, 0.6)";
+      extraStatus = `<span style="color:#00e5ff; font-size:10.5px;">⚔️ Đang áp sát ngôi vị Quán Quân!</span>`;
+    } else if (playerRank === 3) {
+      rankBadge = `<span style="color:#ffaa00; font-weight:bold; font-size:13.5px;">🥉 TOP 3 THẾ GIỚI</span>`;
+      rankGlow = "rgba(255, 170, 0, 0.6)";
+      extraStatus = `<span style="color:#ffaa00; font-size:10.5px;">🔥 Trong nhóm Tam Đại Cao Thủ!</span>`;
+    } else if (playerRank <= 100) {
+      rankBadge = `<span style="color:#39ff14; font-weight:bold; font-size:13px;">#${playerRank} (TOP 100)</span>`;
+      rankGlow = "rgba(57, 255, 20, 0.4)";
+      extraStatus = `<span style="color:#39ff14; font-size:10.5px;">✨ Bạn đang nằm trong Bảng Vàng Top 100!</span>`;
+    } else {
+      extraStatus = `<span style="color:#ff88aa; font-size:10.5px;">Cần thêm <b>+${CONFIG.formatNumber(powerGapToTop100)} CP</b> để lọt vào TOP 100!</span>`;
+    }
+
+    bannerEl.innerHTML = `
+      <div style="background: linear-gradient(90deg, rgba(255, 215, 0, 0.15), rgba(16, 26, 38, 0.85)); border: 1.5px solid ${rankGlow}; border-radius: 8px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 0 15px ${rankGlow};">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:26px;">🌟</span>
+          <div>
+            <div style="font-size:12.5px; font-weight:bold; color:#ffffff;">Thị Trấn: <span style="color:#ffd700;">${window.gameState.townName || "Thị Trấn Của Bạn"}</span> (Bạn)</div>
+            <div style="font-size:11px; color:#a0b0c0; margin-top:2px;">Vị Trí Của Bạn: ${rankBadge} / ${totalParticipants.toLocaleString()} Thị Trấn</div>
+            <div style="margin-top:2px;">${extraStatus}</div>
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:10px; color:#a0b0c0; text-transform:uppercase;">Tổng Lực Chiến</div>
+          <div style="font-size:16px; font-weight:bold; color:#ffd700; text-shadow:0 0 8px rgba(255,215,0,0.5);">⚔️ ${CONFIG.formatNumber(playerPower)} CP</div>
+        </div>
+      </div>
+    `;
+
+    let html = "";
+    top100List.forEach((item, index) => {
+      const rankNum = index + 1;
+      const isPlayer = item.isPlayer;
+
+      let medalIcon = `<span style="font-size:11px; font-weight:bold; color:var(--text-muted); width:32px; display:inline-block; text-align:center;">#${rankNum}</span>`;
+      let cardBg = isPlayer 
+        ? "background: linear-gradient(90deg, rgba(255, 215, 0, 0.22), rgba(20, 32, 48, 0.95)); border: 1.5px solid rgba(255, 215, 0, 0.6); box-shadow: 0 0 12px rgba(255, 215, 0, 0.35);" 
+        : "background: #0d141e; border: 1px solid #1f2e42;";
+
+      if (rankNum === 1) {
+        medalIcon = `<span style="font-size:18px; width:32px; display:inline-block; text-align:center;" title="Hạng 1">🥇</span>`;
+        if (!isPlayer) cardBg = "background: linear-gradient(90deg, rgba(255, 215, 0, 0.08), #0d141e); border: 1px solid rgba(255, 215, 0, 0.3);";
+      } else if (rankNum === 2) {
+        medalIcon = `<span style="font-size:18px; width:32px; display:inline-block; text-align:center;" title="Hạng 2">🥈</span>`;
+        if (!isPlayer) cardBg = "background: linear-gradient(90deg, rgba(224, 224, 224, 0.08), #0d141e); border: 1px solid rgba(224, 224, 224, 0.3);";
+      } else if (rankNum === 3) {
+        medalIcon = `<span style="font-size:18px; width:32px; display:inline-block; text-align:center;" title="Hạng 3">🥉</span>`;
+        if (!isPlayer) cardBg = "background: linear-gradient(90deg, rgba(255, 170, 0, 0.08), #0d141e); border: 1px solid rgba(255, 170, 0, 0.3);";
+      }
+
+      const powerStr = CONFIG.formatNumber(Math.round(item.currentPower));
+
+      html += `
+        <div class="item-card" style="${cardBg} display:flex; justify-content:space-between; align-items:center; padding:9px 12px; border-radius:6px; transition: all 0.2s;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            ${medalIcon}
+            <span style="font-size:20px;">${item.avatar || '🏰'}</span>
+            <div>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span style="font-size:12.5px; font-weight:bold; color:${isPlayer ? '#ffd700' : '#ffffff'};">${item.town}</span>
+                ${isPlayer ? '<span style="font-size:9px; font-weight:bold; color:#000; background:#ffd700; padding:1px 5px; border-radius:3px;">BẠN</span>' : ''}
+              </div>
+              <div style="font-size:10.5px; color:var(--text-muted); margin-top:2px;">
+                Thị Trưởng: <b style="color:#00e5ff;">${item.mayor}</b> | <span style="color:#a0b0c0;">${item.title || ''}</span>
+              </div>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <span style="font-size:13px; font-weight:bold; color:#ffaa00; text-shadow:0 0 6px rgba(255,170,0,0.35);">
+              ⚔️ ${powerStr} CP
+            </span>
+          </div>
+        </div>
+      `;
+    });
+
+    listEl.innerHTML = html;
+  }
+
+  // ==========================================
+  // KHO NGUYÊN LIỆU THỊ TRẤN (STORAGE INVENTORY)
+  // ==========================================
   populateStorageModal() {
     const list = document.getElementById('storage-item-grid');
     if (!list) return;
 
-    const count = window.gameState.getStorageCount();
-    const max = window.gameState.recalculateMaxStorage ? window.gameState.recalculateMaxStorage() : window.gameState.maxStorage;
-    const pct = Math.min(100, Math.round((count / max) * 100));
-
-    const isAutoOn = window.gameState.autoSellStorage !== false;
-    const expTimes = window.gameState.storageExpansions || 0;
-    const expCost = window.gameState.getStorageExpansionCost();
-    const canAffordExp = window.gameState.gold >= expCost;
-
-    let baseStorage = 60;
-    if (window.gameState.townLevel > 1 && typeof Building !== 'undefined' && Building.getTownUpgradeData) {
-      const td = Building.getTownUpgradeData(window.gameState.townLevel);
-      if (td && td.storage) baseStorage = td.storage;
-    }
-    const manualBonus = expTimes * 30;
-    const techBonus = (window.gameState.researched?.['tech_storage_expand'] ? 60 : 0) + (window.gameState.researched?.['tech_storage_expand_2'] ? 120 : 0);
+    const count = window.gameState.getStorageCount ? window.gameState.getStorageCount() : 0;
+    const max = window.gameState.getMaxStorage ? window.gameState.getMaxStorage() : 60;
+    const pct = Math.min(100, Math.round((count / Math.max(1, max)) * 100));
 
     let html = `
-      <div class="item-card" style="background:#131c26; border-color:#2a3f55; flex-direction:column; gap:6px; margin-bottom:6px;">
+      <div class="item-card" style="background:#131c26; border-color:#2a3f55; flex-direction:column; gap:6px; margin-bottom:8px;">
         <div style="display:flex; justify-content:space-between; width:100%; font-size:11px;">
-          <span>📦 <b>TỔNG SỨC CHỨA KHO ĐỒ:</b></span>
+          <span>📦 <b>SỨC CHỨA KHO:</b></span>
           <span style="color:${pct > 85 ? '#ff3366' : '#39ff14'}; font-weight:bold;">${count} / ${max} Món (${pct}%)</span>
         </div>
         <div class="bar-track" style="width:100%; height:6px;">
           <div class="bar-fill exp" style="width:${pct}%; background:${pct > 85 ? '#ff3366' : '#00e5ff'};"></div>
         </div>
-        <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px; width:100%; font-size:10px; color:var(--text-muted); background:rgba(0,0,0,0.25); padding:4px 6px; border-radius:3px;">
-          <span>🏛️ Thị Chính Lv.${window.gameState.townLevel}: <b>${baseStorage}</b></span>
-          <span>📦 Đã mở (${expTimes}x): <b style="color:#ffd700">+${manualBonus}</b></span>
-          ${techBonus > 0 ? `<span>💡 Nghiên cứu: <b style="color:#00e5ff">+${techBonus}</b></span>` : ''}
+        <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px; width:100%; font-size:10px; color:var(--text-muted); background:rgba(0,0,0,0.25); padding:5px 8px; border-radius:4px;">
+          <span>🏛️ <b>Tòa Thị Chính Lv.${window.gameState.townLevel}</b>: Sức chứa tối đa <b>${max}</b> món</span>
+          <span style="color:#39ff14;">🟢 Tự Động Xuất Khẩu khi đầy (giữ ~85%)</span>
         </div>
-        <div style="display:flex; justify-content:space-between; align-items:center; width:100%; font-size:10px; margin-top:2px;">
-          <span style="color:var(--text-muted);">Tự Động Xuất Khẩu khi kho đầy ≥90%:</span>
-          <button class="btn-xs ${isAutoOn ? 'btn-primary' : 'btn-secondary'}" onclick="window.app.toggleAutoSellStorage()">
-            ${isAutoOn ? '🟢 ĐANG BẬT' : '🔴 ĐÃ TẮT'}
-          </button>
-        </div>
-        <div style="display:flex; gap:6px; width:100%; margin-top:4px;">
-          <button class="btn-secondary btn-xs" style="flex:1;" onclick="window.app.expandStorage()">
-            Mở Rộng Thêm (+30 ô: <b style="color:${canAffordExp ? '#ffd700' : '#ff5577'}">💰${CONFIG.formatNumber(expCost)}</b>)
-          </button>
-          <button class="btn-danger btn-xs" style="flex:1;" onclick="window.app.sellExcessLoot()">🚢 Xuất Khẩu 50% Cho Thương Đội</button>
-        </div>
+        <button class="btn-primary btn-xs" style="width:100%; margin-top:2px; font-weight:bold; padding:5px 8px; font-size:11px;" onclick="window.app.sellHalfAllLoot()">
+          🚢 Bán 50% Toàn Bộ Nguyên Liệu Kho (Thu Tiền Nhanh)
+        </button>
       </div>
     `;
 
-    const entries = Object.entries(window.gameState.storage);
+    const entries = Object.entries(window.gameState.storage || {});
     if (entries.length === 0) {
-      html += `<div style="color:var(--text-muted); text-align:center; padding:15px;">Kho đồ hiện đang trống rỗng! Thợ săn sẽ tự nhặt loot về.</div>`;
+      html += `<div style="color:var(--text-muted); text-align:center; padding:20px;">Kho đồ hiện đang trống! Thợ săn sẽ tự nhặt loot về sau mỗi chuyến đi săn.</div>`;
     } else {
       entries.forEach(([itemId, qty]) => {
+        if (qty <= 0) return;
         const item = CONFIG.ITEMS[itemId];
         if (item) {
           const totalVal = qty * item.basePrice;
           html += `
-            <div class="item-card">
-              <div class="item-info">
-                <div class="item-name">${item.icon} ${item.name} <span style="color:#00e5ff;">x${qty}</span></div>
-                <div class="item-stats">Giá trị: 💰${item.basePrice}g/cái | Tổng: 💰${totalVal}g</div>
+            <div class="item-card" style="display:flex; justify-content:space-between; align-items:center; padding:9px 12px;">
+              <div class="item-info" style="flex:1;">
+                <div class="item-name" style="font-size:12.5px; font-weight:bold;">${item.icon} ${item.name}</div>
+                <div class="item-stats" style="font-size:10px; color:var(--text-muted); margin-top:2px;">Giá trị: 💰${item.basePrice} GOLD/cái | Tổng: 💰${CONFIG.formatNumber(totalVal)} GOLD</div>
               </div>
-              <button class="btn-secondary btn-xs" onclick="window.app.sellSingleLoot('${itemId}')">Bán 1x (+${item.basePrice}g)</button>
+              <div style="font-size:13px; font-weight:bold; color:#00e5ff; background:rgba(0,229,255,0.1); padding:4px 10px; border-radius:4px; border:1px solid rgba(0,229,255,0.3);">
+                x${qty}
+              </div>
             </div>
           `;
         }
@@ -1162,62 +1345,35 @@ class App {
     list.innerHTML = html;
   }
 
-  sellSingleLoot(itemId) {
-    const item = CONFIG.ITEMS[itemId];
-    if (!item) return;
-    if (window.gameState.consumeItem(itemId, 1)) {
-      window.gameState.addGold(item.basePrice);
-      window.logTicker.add(`📦 Đã bán 1x [${item.name}] (+${item.basePrice}g)!`, 'trade');
-      this.populateStorageModal();
-    }
-  }
+  sellHalfAllLoot() {
+    let totalEarned = 0;
+    let totalSold = 0;
 
-  sellExcessLoot() {
-    let earned = 0;
-    Object.entries(window.gameState.storage).forEach(([itemId, qty]) => {
-      const item = CONFIG.ITEMS[itemId];
-      if (item && qty > 2) {
-        const sellCount = Math.floor(qty / 2);
-        window.gameState.consumeItem(itemId, sellCount);
-        const goldVal = sellCount * item.basePrice;
-        earned += goldVal;
+    Object.entries(window.gameState.storage || {}).forEach(([itemId, qty]) => {
+      // Protect precious breakthrough items and dragon scales
+      if (itemId.startsWith('mat_') || itemId === 'dragon_scale') return;
+
+      if (qty >= 2) {
+        const item = CONFIG.ITEMS[itemId];
+        if (item) {
+          const sellCount = Math.floor(qty / 2);
+          if (window.gameState.consumeItem(itemId, sellCount)) {
+            totalSold += sellCount;
+            totalEarned += sellCount * item.basePrice;
+          }
+        }
       }
     });
 
-    if (earned > 0) {
-      window.gameState.addGold(earned);
-      window.logTicker.add(`🚢 [XUẤT KHẨU HOÀNG GIA]: Đã xuất khẩu nguyên liệu quái vật dư thừa cho Thương Đội Liên Tỉnh, thu về +${earned}g cho Ngân Khố!`, 'loot');
-      this.populateStorageModal();
-    } else {
-      alert("Kho đồ không có nhiều nguyên liệu dư thừa để xuất khẩu!");
-    }
-  }
-
-  expandStorage() {
-    const cost = window.gameState.getStorageExpansionCost();
-    if (window.gameState.spendGold(cost)) {
-      window.gameState.storageExpansions = (window.gameState.storageExpansions || 0) + 1;
-      if (window.gameState.recalculateMaxStorage) {
-        window.gameState.recalculateMaxStorage();
-      } else {
-        window.gameState.maxStorage += 30;
-      }
-      const nextCost = window.gameState.getStorageExpansionCost();
-      window.logTicker.add(`📦 [MỞ RỘNG KHO LẦN ${window.gameState.storageExpansions}]: +30 ô chứa đồ! (Sức chứa mới: ${window.gameState.maxStorage} món | Lần tới: 💰${CONFIG.formatNumber(nextCost)})`, 'system');
-      if (window.showToast) window.showToast(`Mở rộng kho thành công! Sức chứa hiện tại: ${window.gameState.maxStorage} món (+30 ô).`, 'success', '📦 MỞ RỘNG KHO');
-      if (window.soundFX) window.soundFX.playForge();
+    if (totalSold > 0) {
+      window.gameState.addGold(totalEarned);
+      window.logTicker.add(`🚢 [XUẤT KHẨU]: Đã bán 50% nguyên liệu kho (${totalSold} món), thu về +💰${CONFIG.formatNumber(totalEarned)} GOLD cho Ngân Khố!`, 'loot');
+      if (window.showToast) window.showToast(`Đã bán 50% nguyên liệu (+💰${CONFIG.formatNumber(totalEarned)} GOLD)`, 'success', '📦 KHO ĐỒ');
       this.populateStorageModal();
       if (window.renderer) window.renderer.updateHeader();
     } else {
-      alert(`Thiếu vàng ngân khố: Cần 💰${CONFIG.formatNumber(cost)} (Hiện có: 💰${CONFIG.formatNumber(window.gameState.gold)})!`);
+      alert("Không có nguyên liệu nào đủ số lượng (≥2) để bán 50%!");
     }
-  }
-
-  toggleAutoSellStorage() {
-    window.gameState.autoSellStorage = !window.gameState.autoSellStorage;
-    const status = window.gameState.autoSellStorage ? "ĐÃ BẬT 🟢" : "ĐÃ TẮT 🔴";
-    window.logTicker.add(`⚡ Tính năng Tự Động Xuất Khẩu khi đầy kho (≥90%): ${status}!`, 'system');
-    this.populateStorageModal();
   }
 
   populateResearchModal() {
@@ -1464,8 +1620,11 @@ class App {
     const critDmgPct = Math.round((hunter.getCritDamage ? hunter.getCritDamage() : 1.50) * 100);
 
     card.innerHTML = `
-      <div class="hd-header-row">
-        <span>Hệ Phái: <b>${cls.name}</b></span>
+      <div class="hd-header-row" style="display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span>Hệ: <b>${cls.name}</b></span>
+          <button class="btn-xs btn-secondary" onclick="window.app.renameHunter('${hunter.id}')" style="font-size:9.5px; padding:1px 6px;">✏️ Đổi Tên</button>
+        </div>
         <span class="hd-rank-tag" style="background:${rank.color}; color:#000;">${rank.icon} ${rank.name}</span>
       </div>
       <div style="background:rgba(255,170,0,0.12); border:1px solid rgba(255,170,0,0.3); border-radius:4px; padding:4px 8px; display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
@@ -1529,6 +1688,19 @@ class App {
       
       <!-- TẾ ĐÀN ĐỘT PHÁ CẢNH GIỚI (LV.100) -->
       ${(() => {
+        const maxStars = (CONFIG.BREAKTHROUGH_COSTS && CONFIG.BREAKTHROUGH_COSTS.length) ? CONFIG.BREAKTHROUGH_COSTS.length : 5;
+        if ((hunter.reincarnation || 0) >= maxStars) {
+          return `
+            <div style="background:radial-gradient(circle, rgba(255,215,0,0.15) 0%, rgba(20,10,30,0.9) 100%); border:1.5px solid #ffd700; border-radius:6px; padding:12px; margin-top:10px; box-shadow:0 0 15px rgba(255,215,0,0.3); text-align:center;">
+              <div style="color:#ffd700; font-weight:bold; font-size:13px; margin-bottom:4px;">👑 CẢNH GIỚI TỐI THƯỢNG (MAX ĐỘT PHÁ ⭐⭐⭐⭐⭐)</div>
+              <div style="font-size:11px; color:#39ff14; font-weight:bold; margin-bottom:4px;">🌌 ĐÃ MỞ KHÓA SỨC MẠNH ĐỈNH PHONG VÔ HẠN</div>
+              <div style="font-size:10px; color:#d0dbe5; line-height:1.4;">
+                Thợ săn đã đạt đỉnh cao chuyển sinh! <b>Mỗi cấp độ tiếp theo</b> sẽ được cộng dồn thêm lượng lớn chỉ số cơ bản vĩnh viễn (<b>+Max HP, +ATK, +DEF</b>) mà không bị giới hạn cấp!
+              </div>
+            </div>
+          `;
+        }
+
         const bkInfo = hunter.getBreakthroughInfo ? hunter.getBreakthroughInfo() : null;
         if (!bkInfo) return '';
         const canBk = hunter.canBreakthrough ? hunter.canBreakthrough() : { ok: false };
@@ -1608,6 +1780,68 @@ class App {
     } else {
       alert(res.reason || "Chưa đủ điều kiện Đột Phá!");
     }
+  }
+
+  renameHunter(hunterId) {
+    const hunter = window.gameState.hunters.find(h => h.id === hunterId);
+    if (!hunter) return;
+
+    this.currentRenamingHunterId = hunterId;
+    const modal = document.getElementById('modal-rename-hunter');
+    const oldNameEl = document.getElementById('rename-hunter-old-name');
+    const inputEl = document.getElementById('input-rename-hunter');
+
+    if (oldNameEl) oldNameEl.textContent = hunter.name;
+    if (inputEl) {
+      inputEl.value = hunter.name;
+      setTimeout(() => inputEl.select(), 100);
+    }
+    if (modal) modal.classList.remove('hidden');
+  }
+
+  closeRenameHunterModal() {
+    const modal = document.getElementById('modal-rename-hunter');
+    if (modal) modal.classList.add('hidden');
+    this.currentRenamingHunterId = null;
+  }
+
+  randomizeHunterRename() {
+    const names = [
+      "Thanh Phong", "Huyền Vũ", "Bạch Hổ", "Chu Tước", "Minh Vương", "Vô Cực", "Lâm Phong", "Hải Đăng", 
+      "Quang Khải", "Bảo Long", "Hoàng Nam", "Tuấn Kiệt", "Thiên Ân", "Văn Hùng", "Tiến Dũng", "Chí Kiên", 
+      "Anh Dũng", "Mạnh Hùng", "Đức Trọng", "Trường Giang", "Bá Đạo", "Quốc Bảo", "Nhật Minh", "Thái Sơn", 
+      "Long Ẩn", "Hắc Báo", "Vũ Ca", "Phong Vân", "Bá Vương", "Độc Cô", "Lạc Long", "Bạch Long", 
+      "Hắc Hổ", "Kim Cang", "Lôi Thần", "Viêm Đế", "Thiên Lang", "Phi Long", "Cuồng Phong", "Bắc Đẩu", 
+      "Tử Long", "Dực Đức", "Vân Trường", "Trọng Đạt", "Bá Ước", "Phụng Tiên", "Khắc Cường", "Đăng Khoa",
+      "Tuyết Mai", "Ngọc Bích", "Bích Dao", "Linh Nhi", "Ánh Nguyệt", "Thanh Hà", "Diệu Huyền", "Hồng Loan", 
+      "Thục Quyên", "Mỹ Duyên", "Mai Hoa", "Thu Thảo", "Bảo Trâm", "Tuyết Nhi", "Cẩm Tú", "Kim Ngân", 
+      "Yến Vy", "Thanh Vân", "Mộng Điệp", "Ngọc Hân", "Băng Tâm", "Khánh Linh", "Bảo Ngọc", "Phương Thảo"
+    ];
+    const inputEl = document.getElementById('input-rename-hunter');
+    if (inputEl) {
+      const filtered = names.filter(n => n !== inputEl.value);
+      inputEl.value = filtered[Math.floor(Math.random() * filtered.length)];
+    }
+  }
+
+  confirmRenameHunter() {
+    if (!this.currentRenamingHunterId) return;
+    const hunter = window.gameState.hunters.find(h => h.id === this.currentRenamingHunterId);
+    const inputEl = document.getElementById('input-rename-hunter');
+
+    if (hunter && inputEl && inputEl.value.trim()) {
+      const oldName = hunter.name;
+      const newName = inputEl.value.trim().slice(0, 24);
+      if (newName !== oldName) {
+        hunter.name = newName;
+        window.gameState.save();
+        this.openHunterDetail(hunter.id);
+        if (window.renderer) window.renderer.renderAsciiMap();
+        window.logTicker.add(`✏️ Đã đổi tên thợ săn [${oldName}] thành [${hunter.name}]!`, 'system');
+        if (window.showToast) window.showToast(`Đã đổi tên thành ${hunter.name}`, 'success', '✏️ ĐỔI TÊN THÀNH CÔNG');
+      }
+    }
+    this.closeRenameHunterModal();
   }
 
   // ==========================================
@@ -2153,9 +2387,15 @@ class App {
       `;
     }
 
-    const filteredTechs = branchFilter === 'all' 
+    const filteredTechs = (branchFilter === 'all' 
       ? allTechs 
-      : allTechs.filter(t => t.branch === branchFilter);
+      : allTechs.filter(t => t.branch === branchFilter)
+    ).slice().sort((a, b) => {
+      if ((a.reqTownLvl || 1) !== (b.reqTownLvl || 1)) {
+        return (a.reqTownLvl || 1) - (b.reqTownLvl || 1);
+      }
+      return (a.costGold || 0) - (b.costGold || 0);
+    });
 
     const branchIcons = {
       economy: '💰',

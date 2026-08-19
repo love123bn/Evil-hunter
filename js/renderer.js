@@ -29,7 +29,8 @@ class Renderer {
       }
 
       let html = "";
-      state.hunters.forEach(h => {
+      const sortedHunters = [...(state.hunters || [])].sort((a, b) => (b.getCombatPower ? b.getCombatPower() : 0) - (a.getCombatPower ? a.getCombatPower() : 0));
+      sortedHunters.forEach(h => {
         const clsKey = (h.classKey || "BERSERKER").toUpperCase();
         const rankKey = (h.rankKey || "NORMAL").toUpperCase();
         const cls = CONFIG.HUNTER_CLASSES[clsKey] || CONFIG.HUNTER_CLASSES.BERSERKER;
@@ -119,11 +120,14 @@ class Renderer {
   // Update Top Bar & Building Badges
   updateHeader() {
     const state = window.gameState;
-    document.getElementById('txt-town-name').textContent = `Thị Trấn Cấp ${state.townLevel}`;
+    document.getElementById('txt-town-name').textContent = state.townName || "Thị Trấn Diệt Quỷ";
+    const townLvlBadge = document.getElementById('badge-town-level');
+    if (townLvlBadge) townLvlBadge.textContent = `Cấp ${state.townLevel}`;
     document.getElementById('val-gold').textContent = CONFIG.formatNumber(state.gold);
     document.getElementById('val-gems').textContent = CONFIG.formatNumber(state.gems);
     document.getElementById('val-pop').textContent = `${state.hunters.length}/${state.maxHunters}`;
-    document.getElementById('val-storage').textContent = `${state.getStorageCount()}/${state.maxStorage}`;
+    const storageEl = document.getElementById('val-storage');
+    if (storageEl) storageEl.textContent = `${state.getStorageCount()}/${state.getMaxStorage()}`;
 
     const totalPower = (state.hunters || []).reduce((s, h) => s + (h.getCombatPower ? h.getCombatPower() : 0), 0);
     const pEl = document.getElementById('val-power');
@@ -188,46 +192,29 @@ class Renderer {
       badgeDungeon.textContent = `Tầng ${nextF}`;
     }
 
-    // Threat & Blood Moon Gate Defense progress
-    const lblThreat = document.getElementById('threat-label-text');
-    const fillThreat = document.getElementById('threat-progress-fill');
-    const txtThreat = document.getElementById('threat-timer-text');
-
-    if (!state.isBloodMoon) {
-      const pct = Math.max(0, Math.min(100, (1 - state.threatTimer / state.threatMax) * 100));
-      if (fillThreat) {
-        fillThreat.style.width = `${pct}%`;
-        fillThreat.style.background = 'linear-gradient(90deg, #ff3366, #bd00ff)';
+    // Active Hunting Zone Banner on Main Screen
+    const zIcon = document.getElementById('az-icon');
+    const zName = document.getElementById('az-name');
+    const zDiff = document.getElementById('az-diff');
+    const zSub = document.getElementById('az-sub');
+    if (zName) {
+      const curZone = CONFIG.ZONES.find(z => z.id === state.currentZoneId) || CONFIG.ZONES[0];
+      const curDiff = CONFIG.DIFFICULTIES.find(d => d.id === state.currentDifficulty) || CONFIG.DIFFICULTIES[0];
+      if (zIcon) zIcon.textContent = curZone.icon || '🌲';
+      zName.textContent = curZone.name;
+      if (zDiff) {
+        zDiff.textContent = `${curDiff.name} (${curDiff.hpMul}x)`;
+        zDiff.style.borderColor = curDiff.color || '#39ff14';
+        zDiff.style.color = curDiff.color || '#39ff14';
+        zDiff.style.background = `${curDiff.color}1f`;
       }
-      const mins = Math.floor(state.threatTimer / 60);
-      const secs = Math.floor(state.threatTimer % 60);
-      if (lblThreat) {
-        lblThreat.textContent = "🌙 Trăng Máu:";
-        lblThreat.style.color = "#ff88aa";
-      }
-      if (txtThreat) {
-        txtThreat.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-      }
-    } else {
-      // ACTIVE SIEGE: Display Live Gate HP
-      const maxGate = state.maxGateHp || 1000;
-      const curGate = Math.max(0, state.gateHp !== undefined ? state.gateHp : maxGate);
-      const gatePct = Math.max(0, Math.min(100, Math.round((curGate / maxGate) * 100)));
-
-      if (fillThreat) {
-        fillThreat.style.width = `${gatePct}%`;
-        fillThreat.style.background = gatePct < 30 ? 'linear-gradient(90deg, #ff0055, #ff3366)' : (gatePct < 60 ? 'linear-gradient(90deg, #ffaa00, #ffd700)' : 'linear-gradient(90deg, #39ff14, #00e5ff)');
-      }
-      if (lblThreat) {
-        lblThreat.textContent = "🛡️ CỔNG THÀNH:";
-        lblThreat.style.color = gatePct < 30 ? "#ff0055" : (gatePct < 60 ? "#ffaa00" : "#39ff14");
-      }
-      if (txtThreat) {
-        const curGateStr = CONFIG.formatNumber ? CONFIG.formatNumber(Math.round(curGate)) : Math.round(curGate);
-        const maxGateStr = CONFIG.formatNumber ? CONFIG.formatNumber(maxGate) : maxGate;
-        txtThreat.innerHTML = `<span style="color:#ff5577; font-weight:bold;">⏱️ ${Math.ceil(state.threatTimer)}s</span> | 🛡️ <b>${curGateStr}/${maxGateStr} (${gatePct}%)</b>`;
+      if (zSub) {
+        const mNames = (curZone.monsters || []).map(m => m.name).join(', ');
+        zSub.textContent = `👾 Quái: ${mNames}`;
       }
     }
+
+
 
     // Day/Night text
     const hrs = Math.floor((state.gameTimeSeconds / 3600) % 24);
