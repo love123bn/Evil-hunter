@@ -48,33 +48,38 @@
           <span class="c-icon">👥</span>
           <span id="val-pop">2/4</span>
         </div>
-        <div class="curr-item power" title="Tổng Lực Chiến Toàn Thị Trấn" style="color:#ffaa00; border-color:rgba(255,170,0,0.3);">
+        <div class="curr-item power" id="btn-open-leaderboard" onclick="window.app.openModal('modal-leaderboard')" title="🏆 Click xem Bảng Xếp Hạng Lực Chiến Toàn Server" style="cursor: pointer; color:#ffaa00; border-color:rgba(255,170,0,0.3);">
           <span class="c-icon">⚔️</span>
           <span id="val-power">0</span>
+          <span style="font-size:9px; color:#ffd700; margin-left:2px;">🏆</span>
         </div>
-        <div class="curr-item storage" title="Sức chứa Kho">
+        <div class="curr-item storage" title="Sức chứa Kho (Nâng cấp Tòa Thị Chính để tăng giới hạn)">
           <span class="c-icon">📦</span>
-          <span id="val-storage">15/50</span>
+          <span id="val-storage">0/60</span>
         </div>
       </div>
 
-      <!-- Threat / Blood Moon Bar & Gate Defense -->
-      <div class="header-row threat-bar-wrap">
-        <span class="threat-label" id="threat-label-text">🌙 Trăng Máu:</span>
-        <div class="threat-progress-track">
-          <div id="threat-progress-fill" style="width: 15%;"></div>
+      <!-- ACTIVE HUNTING ZONE BANNER ON MAIN SCREEN -->
+      <div class="active-zone-bar" id="active-zone-bar" onclick="window.app.openModal('modal-zone')" title="Click để chọn bãi săn hoặc độ khó">
+        <div class="az-left">
+          <span class="az-icon" id="az-icon">🌲</span>
+          <div class="az-details">
+            <div class="az-title-row">
+              <span class="az-label">🗺️ BÃI SĂN:</span>
+              <span class="az-name" id="az-name">Rừng Yếu Ớt (Lv.1 - 10)</span>
+              <span class="az-diff-badge" id="az-diff">Thường (1.0x)</span>
+            </div>
+            <div class="az-sub" id="az-sub">👾 Quái: Slime Nhầy, Goblin Trộm</div>
+          </div>
         </div>
-        <span id="threat-timer-text">04:30</span>
+        <button class="az-btn" id="btn-change-zone" onclick="event.stopPropagation(); window.app.openModal('modal-zone')">Đổi Bãi 🗺️</button>
       </div>
     </header>
 
     <!-- LIVE HUNTERS STATUS DECK -->
     <section id="ascii-viewport-section">
       <div class="viewport-header">
-        <span class="vp-title" id="txt-current-zone">👥 THỢ SĂN TRONG LÀNG (<span id="txt-hunter-count">2</span>)</span>
-        <div class="vp-controls">
-          <button id="btn-change-zone" class="btn-xs">Vùng Săn 🗺️</button>
-        </div>
+        <span class="vp-title">👥 THỢ SĂN TRONG LÀNG (<span id="txt-hunter-count">2</span>)</span>
       </div>
 
       <!-- Live Hunter Information Deck -->
@@ -159,6 +164,10 @@
         <span class="t-icon">👥</span>
         <span class="t-label">Thợ Săn</span>
       </button>
+      <button class="tab-btn" data-tab="tab-leaderboard">
+        <span class="t-icon">🏆</span>
+        <span class="t-label">Xếp Hạng</span>
+      </button>
       <button class="tab-btn" data-tab="tab-storage">
         <span class="t-icon">📦</span>
         <span class="t-label">Kho Đồ</span>
@@ -212,7 +221,7 @@
         <p class="modal-desc">Nơi thợ săn nghỉ ngơi hồi phục Thể Lực (Fatigue) đầy 100%. Thu phí phòng nghỉ theo cấp độ và phẩm cấp Thợ Săn.</p>
         <div class="inn-stats-box">
           <div class="stat-row"><span>Số giường phòng trọ:</span> <b id="inn-beds">3 Giường</b></div>
-          <div class="stat-row"><span>Tốc độ hồi thể lực:</span> <b id="inn-speed" style="color:#39ff14;">+12 Thể lực/giây</b></div>
+          <div class="stat-row"><span>Tốc độ hồi thể lực:</span> <b id="inn-speed" style="color:#39ff14;">+8 Thể lực/giây</b></div>
           <div class="stat-row"><span>Khách đang ngủ:</span> <b id="inn-active-guests">0 Thợ săn</b></div>
           <div class="stat-row"><span>Tổng vàng đã thu:</span> <b id="inn-revenue" style="color:#ffd700;">0 GOLD</b></div>
         </div>
@@ -395,7 +404,7 @@
     <!-- MODAL: STORAGE (KHO ĐỒ THỊ TRẤN) -->
     <div id="modal-storage" class="game-modal hidden">
       <div class="modal-header">
-        <h3>📦 KHO NGUYÊN LIỆU & TRANG BỊ</h3>
+        <h3>📦 KHO NGUYÊN LIỆU THỊ TRẤN</h3>
         <button class="btn-close-modal">✖</button>
       </div>
       <div class="modal-body">
@@ -462,6 +471,22 @@
       </div>
     </div>
 
+    <!-- MODAL: LEADERBOARD (BẢNG XẾP HẠNG TOP 100 SERVER) -->
+    <div id="modal-leaderboard" class="game-modal hidden" style="max-width: 650px;">
+      <div class="modal-header" style="background: linear-gradient(90deg, #2b1f07 0%, #150e04 100%); border-bottom: 1.5px solid #ffd700;">
+        <h3 style="color:#ffd700; display:flex; align-items:center; gap:6px;">🏆 BẢNG XẾP HẠNG TOP 100 CAO THỦ TOÀN SERVER</h3>
+        <button class="btn-close-modal">✖</button>
+      </div>
+      <div class="modal-body" style="padding: 10px;">
+        <div id="leaderboard-player-banner" style="margin-bottom: 8px;">
+          <!-- Populated dynamically by App -->
+        </div>
+        <div id="leaderboard-list-container" class="item-grid-list" style="display:flex; flex-direction:column; gap:6px; max-height:410px; overflow-y:auto; padding-right:2px;">
+          <!-- Populated dynamically by App -->
+        </div>
+      </div>
+    </div>
+
     <!-- MODAL: RESEARCH (VIỆN NGHIÊN CỨU CÔNG NGHỆ THỊ TRẤN) -->
     <div id="modal-research" class="game-modal hidden" style="max-width: 650px;">
       <div class="modal-header" style="background: linear-gradient(90deg, #102a3a 0%, #091522 100%); border-bottom: 1.5px solid #00e5ff;">
@@ -502,21 +527,46 @@
       </div>
     </div>
 
-  </div>
-
-  <!-- INTRO & TUTORIAL OVERLAY DIALOG -->
-  <div id="intro-dialog-layer" class="intro-layer hidden">
-    <div class="intro-box">
-      <div class="intro-avatar">👴</div>
-      <div class="intro-speech">
-        <h4 id="intro-speaker">Trưởng Lão Eldrin:</h4>
-        <p id="intro-text">Đang tải...</p>
+    <!-- MODAL: WELCOME & NEW TOWN SETUP -->
+    <div id="modal-welcome-init" class="game-modal hidden" style="max-width: 440px; border-color: var(--accent-gold); box-shadow: 0 0 25px rgba(255, 215, 0, 0.25);">
+      <div class="modal-header" style="background: rgba(255, 215, 0, 0.1); border-bottom: 1px solid rgba(255, 215, 0, 0.3);">
+        <h3 style="color: var(--accent-gold); font-size: 13px;">🏰 CHÀO MỪNG TÂN THỊ TRƯỞNG!</h3>
       </div>
-      <div class="intro-actions">
-        <button id="btn-intro-next" class="btn-primary">Tiếp Tục ⏩</button>
-        <button id="btn-intro-skip" class="btn-text-only">Bỏ qua</button>
+      <div class="modal-body" style="padding: 14px 16px; display: flex; flex-direction: column; gap: 12px;">
+        
+        <!-- Welcome Lore -->
+        <div style="background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 10px 12px; font-size: 11.5px; line-height: 1.5; color: #d0dbe5;">
+          <div style="font-size: 13px; font-weight: bold; color: #39ff14; margin-bottom: 4px;">👑 Khởi Đầu Hành Trình Mới</div>
+          Lục địa đang chìm trong bóng tối quái vật. Bạn vừa được sắc phong tước vị <b>Thị Trưởng</b> để gầy dựng lại pháo đài cuối cùng của nhân loại!
+        </div>
+
+        <!-- Town Name Input Section -->
+        <div style="background: #111a24; border: 1px solid #2a3f55; border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px;">
+          <div style="font-size: 11px; font-weight: bold; color: var(--accent-cyan); display: flex; justify-content: space-between; align-items: center;">
+            <span>🏷️ ĐẶT TÊN THỊ TRẤN CỦA BẠN:</span>
+            <button type="button" class="btn-xs btn-secondary" onclick="window.app.randomizeTownName()" style="font-size: 10px; padding: 2px 7px;">🎲 Tên Ngẫu Nhiên</button>
+          </div>
+          <input type="text" id="input-new-town-name" maxlength="28" value="Thị Trấn Diệt Quỷ" 
+                 style="background: #090e14; border: 1px solid var(--accent-cyan); border-radius: 4px; color: #ffffff; padding: 8px 10px; font-size: 13px; font-weight: bold; outline: none; width: 100%;" 
+                 placeholder="Nhập tên thị trấn của bạn..." />
+        </div>
+
+        <!-- 3-Step Quick Guide -->
+        <div style="display: flex; flex-direction: column; gap: 6px; font-size: 10.5px; color: #a0b0c0; background: rgba(0,0,0,0.25); padding: 8px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">
+          <div style="font-weight: bold; color: #ffd700; font-size: 11px; margin-bottom: 2px;">📜 HƯỚNG DẪN QUẢN LÝ CƠ BẢN:</div>
+          <div>⚔️ <b>1. Thợ Săn Tự Động:</b> Thợ săn tự ra bãi săn diệt quái, tăng cấp và mang nguyên liệu về Kho.</div>
+          <div>🏨 <b>2. Thu Phí Dịch Vụ:</b> Thợ săn trả vàng khi vào Quán Trọ ngủ, Quán Ăn dùng bữa, Y Tế trị thương và Lò Rèn sắm đồ &rarr; Vàng vào Ngân Khố!</div>
+          <div>👑 <b>3. Nâng Tầm Thị Trấn:</b> Nâng cấp Tòa Thị Chính, mở bãi săn khó, chiêu mộ Thợ Săn Hiếm/Huyền Thoại và quét Hầm Ngục 30 Tầng.</div>
+        </div>
+
+        <!-- Start Button -->
+        <button id="btn-start-new-town" class="btn-primary" style="padding: 10px; font-size: 13px; font-weight: bold; letter-spacing: 0.5px; width: 100%; margin-top: 4px;" onclick="window.app.confirmNewTownSetup()">
+          🚀 BẮT ĐẦU QUẢN LÝ THỊ TRẤN
+        </button>
+
       </div>
     </div>
+
   </div>
 
   <!-- GAME TOAST NOTIFICATION CONTAINER -->
@@ -541,6 +591,32 @@
     </div>
   </div>
 
+  <!-- MODAL: RENAME HUNTER CUSTOM POPUP -->
+  <div id="modal-rename-hunter" class="game-dialog-overlay hidden">
+    <div class="game-dialog-box" style="border-radius: 10px; width: 100%; max-width: 360px; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--accent-cyan); box-shadow: 0 0 25px rgba(0, 229, 255, 0.3); background: #0c1219;">
+      <div class="dialog-header" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: rgba(0, 229, 255, 0.1); border-bottom: 1px solid rgba(0, 229, 255, 0.25);">
+        <h3 style="margin: 0; font-size: 13px; color: var(--accent-cyan); display: flex; align-items: center; gap: 6px;">
+          <span>✏️</span> <span>ĐỔI TÊN THỢ SĂN</span>
+        </h3>
+        <button class="btn-close-modal" onclick="window.app.closeRenameHunterModal()">✖</button>
+      </div>
+      <div class="dialog-body" style="padding: 14px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="font-size: 11px; color: var(--text-muted);">
+          Nhập danh xưng mới cho thợ săn <b id="rename-hunter-old-name" style="color: #ffffff;">Thanh Phong</b>:
+        </div>
+        <div style="display: flex; gap: 6px;">
+          <input type="text" id="input-rename-hunter" maxlength="24" placeholder="Nhập tên mới..." 
+                 style="flex: 1; background: #060a0f; border: 1px solid var(--accent-cyan); border-radius: 4px; color: #ffffff; padding: 7px 10px; font-size: 13px; font-weight: bold; outline: none;" />
+          <button type="button" class="btn-xs btn-secondary" onclick="window.app.randomizeHunterRename()" style="font-size: 10px; padding: 0 8px;" title="Chọn tên ngẫu nhiên">🎲 Đổi Tên Khác</button>
+        </div>
+      </div>
+      <div class="dialog-footer" style="padding: 10px 14px; display: flex; gap: 8px; background: rgba(0,0,0,0.25); border-top: 1px solid rgba(255,255,255,0.05);">
+        <button class="btn-secondary" style="flex: 1; padding: 7px; font-size: 11px;" onclick="window.app.closeRenameHunterModal()">HỦY BỎ</button>
+        <button class="btn-primary" style="flex: 1; padding: 7px; font-size: 11px; font-weight: bold;" onclick="window.app.confirmRenameHunter()">XÁC NHẬN ✅</button>
+      </div>
+    </div>
+  </div>
+
   <!-- JAVASCRIPT MODULES -->
   <script src="js/config.js"></script>
   <script src="js/state.js"></script>
@@ -549,8 +625,8 @@
   <script src="js/entities/Building.js"></script>
   <script src="js/systems/Combat.js"></script>
   <script src="js/systems/Economy.js"></script>
-  <script src="js/systems/Invasion.js"></script>
   <script src="js/systems/DungeonSystem.js"></script>
+  <script src="js/systems/LeaderboardSystem.js"></script>
   <script src="js/renderer.js"></script>
   <script src="js/app.js"></script>
 </body>
